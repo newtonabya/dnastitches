@@ -1,0 +1,564 @@
+// DNA Stitches — Prisma schema
+// Source of truth: PRD.md §5 (Domain Model). Field names are normative.
+//
+// Conventions:
+// - Money is integer kobo (₦1 = 100 kobo) in `*Kobo` Int fields. Never floats.
+// - Dates/times are stored in UTC; displayed in Africa/Lagos.
+// - Products and portfolio items are unpublished, never hard-deleted.
+//
+// Documented additions beyond PRD §5 (allowed per §5 preamble):
+// - User.emailVerified, Account, Session, VerificationToken: required by the Auth.js Prisma adapter.
+// - Product.fabricSwatchId: FK backing the `fabricSwatch FabricSwatch?` relation.
+// - Order.fulfilledAt: referenced by US-A4 AC8 (starts the defect window).
+// - CustomOrderStatusLog.changedById is nullable: null means "system" (e.g. Paystack webhook, US-C4 AC3).
+// - Enums MeasurementTakenBy, RepairStatus, ReminderChannel back the inline unions in §5.2.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────────────────────
+// Enums (PRD §5.1)
+// ─────────────────────────────────────────────────────────────
+
+enum Role {
+  CUSTOMER
+  ADMIN
+}
+
+enum InventoryStatus {
+  AVAILABLE
+  LOW_STOCK // see D-2: "reserved/held" or last size for rare multi-unit drops
+  SOLD_OUT
+}
+
+enum CustomOrderStatus {
+  REQUEST_RECEIVED // submitted by customer, not yet triaged
+  CONSULTATION_PENDING
+  MEASUREMENTS_TAKEN
+  AWAITING_DEPOSIT // quote sent; production starts only after deposit is paid
+  IN_PRODUCTION
+  FITTING
+  READY // ready for pickup or out for delivery
+  COMPLETED // collected / delivered
+  CANCELLED
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID
+  FULFILLED
+  CANCELLED // only before payment; no refunds after payment (D-11)
+}
+
+enum FulfillmentMethod {
+  PICKUP
+  DELIVERY
+}
+
+enum PaymentKind {
+  RTW_FULL
+  CUSTOM_DEPOSIT
+  CUSTOM_BALANCE
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  ABANDONED
+}
+
+enum PaymentChannel {
+  PAYSTACK // card, bank transfer, USSD via Paystack
+  OFFLINE // cash or direct transfer recorded by admin
+}
+
+enum AppointmentType {
+  CONSULTATION
+  MEASUREMENT
+  FITTING
+  PICKUP
+}
+
+enum AppointmentStatus {
+  REQUESTED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum MeasurementUnit {
+  CM
+  IN
+}
+
+enum NotificationRequestType {
+  RESTOCK
+  SIMILAR_FABRIC
+}
+
+enum MeasurementTakenBy {
+  SELF
+  ADMIN
+}
+
+enum RepairStatus {
+  OPEN
+  IN_REPAIR
+  RESOLVED
+  REJECTED
+}
+
+enum ReminderChannel {
+  EMAIL
+}
+
+// ─────────────────────────────────────────────────────────────
+// Users & Auth.js adapter tables
+// ─────────────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  name          String?
+  phone         String? // E.164 (+234…)
+  role          Role      @default(CUSTOMER)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts             Account[]
+  sessions             Session[]
+  addresses            Address[]
+  orders               Order[]
+  payments             Payment[]              @relation("PaymentUser")
+  recordedPayments     Payment[]              @relation("PaymentRecordedBy")
+  customOrders         CustomOrder[]
+  statusChanges        CustomOrderStatusLog[]
+  measurementProfiles  MeasurementProfile[]
+  appointments         Appointment[]
+  reviews              Review[]
+  notificationRequests NotificationRequest[]
+  repairRequests       RepairRequest[]
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Catalog
+// ─────────────────────────────────────────────────────────────
+
+model Product {
+  id                String          @id @default(cuid())
+  slug              String          @unique
+  name              String
+  description       String
+  priceKobo         Int
+  currency          String          @default("NGN")
+  inventoryStatus   InventoryStatus @default(AVAILABLE) // derived from quantity on write (US-A1)
+  quantity          Int             @default(1)
+  bustCm            Decimal?        @db.Decimal(6, 1)
+  waistCm           Decimal?        @db.Decimal(6, 1)
+  hipsCm            Decimal?        @db.Decimal(6, 1)
+  lengthCm          Decimal?        @db.Decimal(6, 1)
+  sizeLabel         String?
+  fabricComposition String
+  careInstructions  String
+  isPublished       Boolean         @default(false)
+  fabricSwatchId    String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  images               ProductImage[]
+  fabricSwatch         FabricSwatch?         @relation(fields: [fabricSwatchId], references: [id], onDelete: SetNull)
+  orders               Order[]
+  portfolioItems       PortfolioItem[]
+  customOrders         CustomOrder[]
+  reviews              Review[]
+  notificationRequests NotificationRequest[]
+
+  @@index([isPublished, inventoryStatus])
+  @@index([fabricSwatchId])
+}
+
+model ProductImage {
+  id        String @id @default(cuid())
+  productId String
+  url       String
+  alt       String
+  sortOrder Int    @default(0)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, sortOrder])
+}
+
+model FabricSwatch {
+  id          String   @id @default(cuid())
+  name        String
+  colorHex    String
+  imageUrl    String
+  composition String
+  isAvailable Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products     Product[]
+  customOrders CustomOrder[]
+
+  @@index([isAvailable, sortOrder])
+}
+
+model PortfolioItem {
+  id              String   @id @default(cuid()) // the referenceId used to pre-fill custom requests (US-B2)
+  title           String
+  description     String
+  imageUrl        String
+  tags            String[]
+  isPublished     Boolean  @default(false)
+  sourceProductId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  sourceProduct Product?      @relation(fields: [sourceProductId], references: [id], onDelete: SetNull)
+  customOrders  CustomOrder[]
+
+  @@index([isPublished])
+  @@index([sourceProductId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Commerce: addresses, delivery, orders, payments
+// ─────────────────────────────────────────────────────────────
+
+model Address {
+  id            String   @id @default(cuid())
+  userId        String
+  recipientName String
+  phone         String // E.164 (+234…)
+  line1         String
+  line2         String?
+  city          String
+  state         String // one of the 36 states + FCT
+  landmark      String?
+  isDefault     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders       Order[]
+  customOrders CustomOrder[]
+
+  @@index([userId])
+}
+
+model DeliveryZone {
+  id        String   @id @default(cuid())
+  name      String // e.g. "Lagos Mainland"
+  states    String[]
+  feeKobo   Int
+  etaDays   Int
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders Order[]
+}
+
+/// One product per order in v1 (1-of-1 pieces).
+/// `addressId` is required when `fulfillmentMethod = DELIVERY` (enforced in application code).
+model Order {
+  id                      String            @id @default(cuid())
+  userId                  String
+  productId               String
+  subtotalKobo            Int
+  deliveryFeeKobo         Int               @default(0) // 0 for pickup
+  totalKobo               Int
+  status                  OrderStatus       @default(PENDING_PAYMENT)
+  fulfillmentMethod       FulfillmentMethod
+  addressId               String?
+  deliveryZoneId          String?
+  finalSaleAcknowledgedAt DateTime
+  fulfilledAt             DateTime? // starts the defect window (US-A4 AC8, US-D3)
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Restrict)
+  product        Product         @relation(fields: [productId], references: [id], onDelete: Restrict)
+  address        Address?        @relation(fields: [addressId], references: [id], onDelete: SetNull)
+  deliveryZone   DeliveryZone?   @relation(fields: [deliveryZoneId], references: [id], onDelete: SetNull)
+  payments       Payment[]
+  repairRequests RepairRequest[]
+
+  @@index([userId])
+  @@index([productId])
+  @@index([status, createdAt])
+}
+
+/// Every money movement is a Payment row.
+/// Exactly one of `orderId` / `customOrderId` is set (enforced in application code).
+model Payment {
+  id                String         @id @default(cuid())
+  userId            String
+  kind              PaymentKind
+  channel           PaymentChannel
+  status            PaymentStatus  @default(PENDING)
+  amountKobo        Int
+  currency          String         @default("NGN")
+  orderId           String?
+  customOrderId     String?
+  paystackReference String?        @unique
+  paidAt            DateTime?
+  recordedById      String? // admin who recorded an OFFLINE payment
+  rawEvent          Json?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  user        User         @relation("PaymentUser", fields: [userId], references: [id], onDelete: Restrict)
+  recordedBy  User?        @relation("PaymentRecordedBy", fields: [recordedById], references: [id], onDelete: SetNull)
+  order       Order?       @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  customOrder CustomOrder? @relation(fields: [customOrderId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([orderId])
+  @@index([customOrderId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Custom journey
+// ─────────────────────────────────────────────────────────────
+
+/// Versioned by creation: edits create a new row (D-3).
+/// At most one `isDefault = true` per user (enforced in a transaction).
+model MeasurementProfile {
+  id        String             @id @default(cuid())
+  userId    String
+  label     String // e.g. "Wedding 2026"
+  unit      MeasurementUnit
+  bust      Decimal            @db.Decimal(6, 1)
+  waist     Decimal            @db.Decimal(6, 1)
+  hips      Decimal            @db.Decimal(6, 1)
+  shoulder  Decimal?           @db.Decimal(6, 1)
+  armLength Decimal?           @db.Decimal(6, 1)
+  inseam    Decimal?           @db.Decimal(6, 1)
+  height    Decimal?           @db.Decimal(6, 1)
+  notes     String?
+  takenBy   MeasurementTakenBy @default(SELF)
+  isDefault Boolean            @default(false)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  customOrders CustomOrder[]
+
+  @@index([userId, createdAt])
+}
+
+/// Balance due = quotedPriceKobo + deliveryFeeKobo − sum(successful payments).
+model CustomOrder {
+  id                   String             @id @default(cuid())
+  reference            String             @unique // human-readable, e.g. DNA-2026-0042
+  userId               String
+  status               CustomOrderStatus  @default(REQUEST_RECEIVED)
+  title                String
+  description          String
+  occasion             String?
+  targetDate           DateTime?
+  budgetKobo           Int?
+  referenceImageUrls   String[]
+  portfolioItemId      String?
+  sourceProductId      String?
+  fabricSwatchId       String?
+  measurementProfileId String?
+  quotedPriceKobo      Int?
+  depositKobo          Int?
+  quoteSentAt          DateTime?
+  completedAt          DateTime?
+  fulfillmentMethod    FulfillmentMethod?
+  addressId            String?
+  deliveryFeeKobo      Int?
+  adminNotes           String? // private — never shown to the customer
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  user               User                   @relation(fields: [userId], references: [id], onDelete: Restrict)
+  portfolioItem      PortfolioItem?         @relation(fields: [portfolioItemId], references: [id], onDelete: SetNull)
+  sourceProduct      Product?               @relation(fields: [sourceProductId], references: [id], onDelete: SetNull)
+  fabricSwatch       FabricSwatch?          @relation(fields: [fabricSwatchId], references: [id], onDelete: SetNull)
+  measurementProfile MeasurementProfile?    @relation(fields: [measurementProfileId], references: [id], onDelete: SetNull)
+  address            Address?               @relation(fields: [addressId], references: [id], onDelete: SetNull)
+  statusLogs         CustomOrderStatusLog[]
+  appointments       Appointment[]
+  payments           Payment[]
+  reviews            Review[]
+  repairRequests     RepairRequest[]
+
+  @@index([userId])
+  @@index([status, updatedAt])
+}
+
+/// Append-only audit trail (no updatedAt).
+model CustomOrderStatusLog {
+  id            String             @id @default(cuid())
+  customOrderId String
+  fromStatus    CustomOrderStatus?
+  toStatus      CustomOrderStatus
+  changedById   String? // null = system (e.g. Paystack webhook)
+  note          String?
+  createdAt     DateTime           @default(now())
+
+  customOrder CustomOrder @relation(fields: [customOrderId], references: [id], onDelete: Cascade)
+  changedBy   User?       @relation(fields: [changedById], references: [id], onDelete: SetNull)
+
+  @@index([customOrderId, createdAt])
+}
+
+/// Only allowed within REPAIR_WINDOW_DAYS (default 7) of handover (D-13).
+/// Exactly one of `orderId` / `customOrderId` is set (enforced in application code).
+model RepairRequest {
+  id            String       @id @default(cuid())
+  userId        String
+  orderId       String?
+  customOrderId String?
+  description   String
+  photoUrls     String[]
+  status        RepairStatus @default(OPEN)
+  adminNotes    String?
+  resolvedAt    DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Restrict)
+  order       Order?       @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  customOrder CustomOrder? @relation(fields: [customOrderId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([status])
+}
+
+// ─────────────────────────────────────────────────────────────
+// v1.1: appointments, reminders, reviews
+// ─────────────────────────────────────────────────────────────
+
+model Appointment {
+  id            String            @id @default(cuid())
+  userId        String
+  customOrderId String?
+  type          AppointmentType
+  status        AppointmentStatus @default(REQUESTED)
+  startsAt      DateTime
+  endsAt        DateTime
+  notes         String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  customOrder CustomOrder? @relation(fields: [customOrderId], references: [id], onDelete: SetNull)
+  reminders   Reminder[]
+
+  @@index([userId])
+  @@index([startsAt])
+}
+
+model Reminder {
+  id            String          @id @default(cuid())
+  appointmentId String
+  channel       ReminderChannel @default(EMAIL)
+  sendAt        DateTime
+  sentAt        DateTime?
+  error         String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@index([sendAt, sentAt])
+}
+
+/// Exactly one of `productId` / `customOrderId` is set (enforced in application code).
+model Review {
+  id            String   @id @default(cuid())
+  userId        String
+  productId     String?
+  customOrderId String?
+  rating        Int // 1–5
+  body          String
+  isApproved    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product     Product?     @relation(fields: [productId], references: [id], onDelete: SetNull)
+  customOrder CustomOrder? @relation(fields: [customOrderId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, customOrderId])
+  @@unique([userId, productId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Engagement
+// ─────────────────────────────────────────────────────────────
+
+model NotificationRequest {
+  id         String                  @id @default(cuid())
+  email      String
+  userId     String?
+  productId  String?
+  type       NotificationRequestType
+  createdAt  DateTime                @default(now())
+  notifiedAt DateTime?
+
+  user    User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@unique([email, productId, type])
+  @@index([productId])
+}
