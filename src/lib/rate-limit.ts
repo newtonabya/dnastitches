@@ -67,3 +67,29 @@ export function getClientIp(headers: Pick<Headers, "get">): string {
 
 /** US-D2 AC3: 5 notify-me requests per IP per 10 minutes. */
 export const notifyMeRateLimiter = createMemoryRateLimiter({ limit: 5, windowMs: 10 * 60 * 1000 });
+
+/** Magic-link sign-in: per address, so nobody can flood one inbox with sign-in emails. */
+export const signInEmailRateLimiter = createMemoryRateLimiter({
+  limit: 5,
+  windowMs: 10 * 60 * 1000,
+});
+/** Magic-link sign-in: per IP, to slow down sending to many addresses (production only). */
+export const signInIpRateLimiter = createMemoryRateLimiter({ limit: 30, windowMs: 10 * 60 * 1000 });
+
+/**
+ * Whether a magic-link request may go out. The per-IP limit applies in production only:
+ * local E2E runs sign in dozens of accounts from one address within minutes.
+ */
+export async function allowSignInEmail(
+  email: string,
+  ip: string,
+  {
+    production,
+    byEmail = signInEmailRateLimiter,
+    byIp = signInIpRateLimiter,
+  }: { production: boolean; byEmail?: RateLimiter; byIp?: RateLimiter },
+): Promise<boolean> {
+  if (!(await byEmail.limit(`signin:email:${email.trim().toLowerCase()}`)).success) return false;
+  if (production && !(await byIp.limit(`signin:ip:${ip}`)).success) return false;
+  return true;
+}

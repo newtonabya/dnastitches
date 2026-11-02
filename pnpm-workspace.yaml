@@ -6,3 +6,7 @@ ignoredBuiltDependencies:
   - "@parcel/watcher"
   - sharp
   - unrs-resolver
+# Security: @vercel/blob → @vercel/oidc → @vercel/cli-config pins zod 4.1.x, which is
+# affected by GHSA-mrhx-c7xc-m3w5 (memory exhaustion). Force the patched release.
+overrides:
+  "@vercel/cli-config>zod": "^4.6.7"

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { reminderEmail } from "@/emails/reminders";
 import { getEmailSender } from "@/lib/email";
+import { isAuthorizedCron } from "@/lib/cron-auth";
 import { env } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 import { runDueReminders } from "@/server/data/reminders";
@@ -14,7 +15,7 @@ import { runDueReminders } from "@/server/data/reminders";
  * reminders are caught up on the next run.
  */
 export async function GET(request: Request) {
-  if (!env.CRON_SECRET || request.headers.get("authorization") !== `Bearer ${env.CRON_SECRET}`) {
+  if (!isAuthorizedCron(request.headers.get("authorization"), env.CRON_SECRET)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const sender = getEmailSender();
