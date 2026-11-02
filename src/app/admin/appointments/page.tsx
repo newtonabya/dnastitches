@@ -153,11 +153,18 @@ async function Week({
                         href={`/admin/appointments/${a.id}`}
                         className={cn(
                           "flex flex-col rounded-md border p-2 text-xs hover:bg-accent",
-                          !["REQUESTED", "CONFIRMED"].includes(a.status) && "opacity-60",
+                          // Inactive: a muted background, not reduced opacity (which fails
+                          // WCAG AA contrast).
+                          !["REQUESTED", "CONFIRMED"].includes(a.status) && "bg-muted",
                           a.status === "REQUESTED" && "border-dashed border-primary",
                         )}
                       >
-                        <span className="font-medium tabular-nums">
+                        <span
+                          className={cn(
+                            "font-medium tabular-nums",
+                            (a.status === "CANCELLED" || a.status === "NO_SHOW") && "line-through",
+                          )}
+                        >
                           {time(a.startsAt, timeZone)}–{time(a.endsAt, timeZone)}
                         </span>
                         <span>{a.user.name ?? a.user.email}</span>
@@ -174,7 +181,8 @@ async function Week({
         })}
       </ol>
       <p className="text-xs text-muted-foreground">
-        Times are in {timeZone}. Dashed cards are requests waiting for you to confirm.
+        Times are in {timeZone}. Dashed cards are requests waiting for you to confirm; grey cards
+        are past or cancelled.
       </p>
     </section>
   );
