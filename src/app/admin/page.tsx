@@ -38,9 +38,11 @@ export default function AdminDashboardPage() {
 
 async function Summary() {
   await requireAdmin();
-  const [counts, cards] = await Promise.all([
+  const [counts, cards, toFulfil, openRepairs] = await Promise.all([
     countOrdersByStatus(prisma),
     listPipelineCards(prisma),
+    prisma.order.count({ where: { status: "PAID" } }),
+    prisma.repairRequest.count({ where: { status: { in: ["OPEN", "IN_REPAIR"] } } }),
   ]);
   const newRequests = cards.filter((c) => c.status === "REQUEST_RECEIVED").slice(0, 10);
 
@@ -64,6 +66,32 @@ async function Summary() {
             Open the pipeline
           </Link>
         </p>
+      </section>
+
+      <section aria-labelledby="attention-heading" className="flex flex-col gap-3">
+        <h2 id="attention-heading" className="text-lg font-semibold">
+          Needs attention
+        </h2>
+        <ul className="flex flex-wrap gap-3 text-sm">
+          <li>
+            <Link
+              href="/admin/orders?view=shop"
+              className="flex flex-col rounded-lg border p-3 hover:bg-accent"
+            >
+              <span className="text-xs text-muted-foreground">Shop orders to fulfil</span>
+              <span className="text-2xl font-semibold tabular-nums">{toFulfil}</span>
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/admin/repairs"
+              className="flex flex-col rounded-lg border p-3 hover:bg-accent"
+            >
+              <span className="text-xs text-muted-foreground">Open repairs</span>
+              <span className="text-2xl font-semibold tabular-nums">{openRepairs}</span>
+            </Link>
+          </li>
+        </ul>
       </section>
 
       <section aria-labelledby="new-heading" className="flex flex-col gap-3">
