@@ -11,6 +11,8 @@ export const SEED = {
   lowStock: { slug: "aso-oke-corset", name: "Gold Aso-Oke Corset" },
   soldOut: { slug: "adire-maxi-skirt", name: "Adire Maxi Skirt" },
   draft: { slug: "draft-silk-blazer", name: "Silk Blazer (draft)" },
+  portfolio: { id: "seed-portfolio-bridal-aso-oke", title: "Bridal Aso-Oke Ensemble" },
+  soldOutSwatch: "Indigo Adire",
 } as const;
 
 /** Give each test its own client IP so per-IP rate limits never collide across tests. */
@@ -54,8 +56,16 @@ export async function magicLinkFor(email: string): Promise<string> {
 
 /** Sign in through the real magic-link flow, starting from wherever the page is now. */
 export async function signInWithMagicLink(page: Page, email: string) {
-  await page.getByLabel("Email").fill(email);
-  await page.getByRole("button", { name: "Email me a sign-in link" }).click();
-  await expect(page.getByText(/Check your email for a sign-in link/)).toBeVisible();
+  // Scope to the sign-in form: Next keeps the previous page mounted (hidden) after a
+  // client-side navigation, so other "Email" fields may still be in the DOM.
+  const form = page
+    .locator("form")
+    .filter({ has: page.getByRole("button", { name: "Email me a sign-in link" }) });
+  await form.getByLabel("Email").fill(email);
+  await form.getByRole("button", { name: "Email me a sign-in link" }).click();
+  // Generous timeout: the dev server may compile the auth routes on first use.
+  await expect(page.getByText(/Check your email for a sign-in link/)).toBeVisible({
+    timeout: 20_000,
+  });
   await page.goto(await magicLinkFor(email));
 }
