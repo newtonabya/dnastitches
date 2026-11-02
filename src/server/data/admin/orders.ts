@@ -155,8 +155,8 @@ export interface TransitionInput {
 
 const CONFLICT_MESSAGE = "This order was just updated by someone else. Refresh and try again.";
 
-/** Transition inside an existing transaction. */
-async function transitionInTx(tx: Tx, input: TransitionInput): Promise<TransitionOutcome> {
+/** Transition inside an existing transaction (also used by payment finalisation). */
+export async function transitionInTx(tx: Tx, input: TransitionInput): Promise<TransitionOutcome> {
   const order = await tx.customOrder.findUnique({
     where: { id: input.orderId },
     select: {
