@@ -14,7 +14,7 @@ export const E2E_PROJECTS = ["chromium", "mobile"] as const;
 export const e2eAdminEmail = (project: string, slot: number) =>
   `e2e-admin-${project}-${slot}@example.com`;
 const E2E_ADMIN_EMAILS = E2E_PROJECTS.flatMap((p) =>
-  [1, 2, 3, 4, 5, 6, 7, 8].map((slot) => e2eAdminEmail(p, slot)),
+  [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((slot) => e2eAdminEmail(p, slot)),
 ).join(",");
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://localhost:${PORT}`;
 
@@ -24,6 +24,7 @@ const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://localhost:${PORT}`;
  */
 export default defineConfig({
   testDir: "./tests/e2e",
+  globalSetup: "./tests/e2e/global-setup.ts",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -51,6 +52,8 @@ export default defineConfig({
           E2E_MAGIC_LINK_FILE: MAGIC_LINK_FILE,
           AUTH_RESEND_KEY: "",
           ADMIN_EMAILS: E2E_ADMIN_EMAILS,
+          // Payments go through the built-in dev gateway (/dev/paystack), never Paystack.
+          PAYSTACK_SECRET_KEY: "",
         },
       },
 });

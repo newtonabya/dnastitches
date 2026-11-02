@@ -7,7 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { STATUS_LABELS } from "@/lib/custom-order/status";
 import { prisma } from "@/lib/prisma";
 import { cn } from "@/lib/utils";
+import { FulfilButton } from "@/components/admin/fulfil-button";
+import { isReservationActive } from "@/lib/checkout";
+import { formatNGN } from "@/lib/money";
+import { formatNigerianPhone } from "@/lib/nigeria";
 import { updateCustomOrderStatus } from "@/server/actions/admin/orders";
+import { markOrderFulfilledAction } from "@/server/actions/admin/shop-orders";
+import { listShopOrders } from "@/server/data/wardrobe";
 import { requireAdmin } from "@/server/auth/guards";
 import { PIPELINE_STATUSES, listClosedOrders, listPipelineCards } from "@/server/data/admin/orders";
 
@@ -39,7 +45,7 @@ export default function AdminOrdersPage({ searchParams }: PageProps<"/admin/orde
 async function Orders({ searchParams }: Pick<PageProps<"/admin/orders">, "searchParams">) {
   await requireAdmin();
   const params = await searchParams;
-  const view = params.view === "closed" ? "closed" : "board";
+  const view = params.view === "closed" ? "closed" : params.view === "shop" ? "shop" : "board";
   const statusParam = Array.isArray(params.status) ? params.status[0] : params.status;
   const closedStatus =
     statusParam === "COMPLETED" || statusParam === "CANCELLED" ? statusParam : undefined;
@@ -75,7 +81,13 @@ async function Orders({ searchParams }: Pick<PageProps<"/admin/orders">, "search
           ))}
         </ul>
       </nav>
-      {view === "board" ? <Board /> : <Closed status={closedStatus} />}
+      {view === "board" ? (
+        <Board />
+      ) : view === "shop" ? (
+        <ShopOrders />
+      ) : (
+        <Closed status={closedStatus} />
+      )}
     </div>
   );
 }
@@ -165,5 +177,70 @@ async function Closed({ status }: { status?: "COMPLETED" | "CANCELLED" }) {
         </div>
       )}
     </div>
+  );
+}
+
+const SHOP_STATUS = {
+  PENDING_PAYMENT: "In checkout",
+  PAID: "Paid: to fulfil",
+  FULFILLED: "Fulfilled",
+  CANCELLED: "Cancelled",
+} as const;
+
+/** US-A4 AC8: ready-to-wear orders; paid ones can be marked picked up / delivered. */
+async function ShopOrders() {
+  const now = new Date();
+  const orders = (await listShopOrders(prisma)).filter(
+    (o) => o.status !== "PENDING_PAYMENT" || isReservationActive(o.createdAt, now),
+  );
+  if (orders.length === 0)
+    return <p className="text-sm text-muted-foreground">No shop orders yet.</p>;
+  return (
+    <ul className="flex flex-col gap-3">
+      {orders.map((o) => (
+        <li
+          key={o.id}
+          aria-label={`Shop order: ${o.product.name}`}
+          className="flex flex-wrap items-start justify-between gap-4 rounded-lg border p-4 text-sm"
+        >
+          <div className="flex flex-col gap-1">
+            <p className="font-medium">
+              {o.product.name} · {formatNGN(o.totalKobo)}
+            </p>
+            <p className="text-muted-foreground">
+              <Link href={`/admin/clients/${o.user.id}`} className="underline">
+                {o.user.name ?? o.user.email}
+              </Link>
+              {o.user.phone ? ` · ${formatNigerianPhone(o.user.phone)}` : ""} ·{" "}
+              {dateFormat.format(o.createdAt)}
+            </p>
+            <p>
+              {o.fulfillmentMethod === "PICKUP"
+                ? "Pickup at the studio"
+                : o.address
+                  ? `Deliver to ${o.address.recipientName}, ${o.address.line1}${o.address.line2 ? `, ${o.address.line2}` : ""}, ${o.address.city}, ${o.address.state}${o.address.landmark ? ` (near ${o.address.landmark})` : ""} · ${formatNigerianPhone(o.address.phone)}`
+                  : "Delivery"}
+            </p>
+          </div>
+          <div className="flex flex-col items-end gap-2">
+            <Badge variant={o.status === "PAID" ? "default" : "secondary"}>
+              {SHOP_STATUS[o.status]}
+            </Badge>
+            {o.fulfilledAt ? (
+              <span className="text-xs text-muted-foreground">
+                on {dateFormat.format(o.fulfilledAt)}
+              </span>
+            ) : null}
+            {o.status === "PAID" ? (
+              <FulfilButton
+                orderId={o.id}
+                label={o.fulfillmentMethod === "PICKUP" ? "Mark as picked up" : "Mark as delivered"}
+                action={markOrderFulfilledAction}
+              />
+            ) : null}
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }
