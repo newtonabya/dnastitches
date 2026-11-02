@@ -13,6 +13,10 @@ const shared = {
 /** Unit + component tests: pure functions and React components (jsdom). */
 const unit = createJestConfig({
   ...shared,
+  moduleNameMapper: {
+    ...shared.moduleNameMapper,
+    "^@vercel/blob/client$": "<rootDir>/tests/helpers/vercel-blob-client.ts",
+  },
   displayName: "unit",
   testEnvironment: "jsdom",
   setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
