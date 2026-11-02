@@ -16,7 +16,10 @@ async function pickRandomSlot(form: Locator) {
   const dayCount = await days.count();
   expect(dayCount).toBeGreaterThan(0);
   // The radios are visually hidden inside their pill labels; click the pill like a user.
-  const day = days.nth(Math.floor(Math.random() * dayCount));
+  // Skip the first two days: a slot barely 24 h away would pass the 24-hour change
+  // cutoff while a slow run is still going, hiding Move and Cancel.
+  const first = Math.min(2, dayCount - 1);
+  const day = days.nth(first + Math.floor(Math.random() * (dayCount - first)));
   await day.locator("xpath=..").click();
   await expect(day).toBeChecked();
   const times = form.getByRole("group", { name: /^Time/ }).getByRole("radio");
@@ -102,6 +105,7 @@ test.describe("Consultation scheduler (US-F1, US-F2)", () => {
     await me.reload();
     await expect(card.getByTestId("appointment-status")).toHaveText("Confirmed");
     await expect(me.getByText("Bring the aso-oke samples.")).toHaveCount(0);
+    await expect(card.getByRole("button", { name: /^Cancel / })).toBeVisible();
     await card.getByRole("button", { name: /^Cancel / }).click();
     await card.getByRole("button", { name: "Yes, cancel it" }).click();
     await expect(me.getByText("Appointment cancelled.")).toBeVisible();

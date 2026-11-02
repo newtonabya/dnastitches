@@ -89,3 +89,67 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+  e2e:
+    name: End-to-end (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dnastitches_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    # The E2E dev server (playwright.config.ts) signs in through the dev magic-link
+    # fallback and pays through the dev gateway: no Resend, Paystack or Blob keys, so
+    # nothing leaves the runner.
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/dnastitches_e2e
+      AUTH_SECRET: ci-e2e-auth-secret-not-used-anywhere
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      STUDIO_TIMEZONE: Africa/Lagos
+      NEXT_TELEMETRY_DISABLED: "1"
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Apply migrations and seed
+        run: |
+          pnpm db:deploy
+          pnpm db:seed
+
+      - name: Playwright (desktop + mobile, with axe accessibility checks)
+        run: pnpm test:e2e
+
+      - name: Upload the Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
