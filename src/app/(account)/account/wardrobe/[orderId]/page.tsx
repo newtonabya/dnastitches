@@ -5,9 +5,13 @@ import { Suspense } from "react";
 
 import { OrderProgress } from "@/components/account/order-progress";
 import { PayForm } from "@/components/account/pay-form";
+import { RepairStatusItem } from "@/components/account/repair-status";
+import { Button } from "@/components/ui/button";
 import { STATUS_LABELS } from "@/lib/custom-order/status";
+import { env } from "@/lib/env";
 import { formatNGN } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
+import { ACTIVE_REPAIR_STATUSES, isWithinDefectWindow } from "@/lib/repairs";
 import { startCustomPaymentAction } from "@/server/actions/checkout";
 import { requireUser } from "@/server/auth/guards";
 import { getWardrobeOrder } from "@/server/data/wardrobe";
@@ -155,6 +159,43 @@ async function Order({
         <p className="text-sm text-muted-foreground">
           We&apos;ll send your quote after your consultation and measurements.
         </p>
+      ) : null}
+
+      {order.status === "COMPLETED" ? (
+        <section aria-labelledby="repairs-heading" className="flex flex-col gap-3">
+          <h2 id="repairs-heading" className="text-lg font-semibold">
+            Repairs
+          </h2>
+          {order.repairRequests.map((r) => (
+            <RepairStatusItem
+              key={r.id}
+              item={order.title}
+              status={r.status}
+              description={r.description}
+              rejectionReason={r.rejectionReason}
+              createdAt={r.createdAt}
+            />
+          ))}
+          {!order.repairRequests.some((r) =>
+            (ACTIVE_REPAIR_STATUSES as readonly string[]).includes(r.status),
+          ) && isWithinDefectWindow(order.completedAt, new Date(), env.REPAIR_WINDOW_DAYS) ? (
+            <div className="flex flex-col items-start gap-2 text-sm">
+              <p className="text-muted-foreground">
+                Found a manufacturing defect? Report it within {env.REPAIR_WINDOW_DAYS} days of
+                handover and we&apos;ll repair it free of charge.
+              </p>
+              <Button asChild variant="outline">
+                <Link href={`/account/wardrobe/repair?customOrder=${order.id}`}>
+                  Report a defect
+                </Link>
+              </Button>
+            </div>
+          ) : order.repairRequests.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              The {env.REPAIR_WINDOW_DAYS}-day window for reporting defects has closed.
+            </p>
+          ) : null}
+        </section>
       ) : null}
 
       <section aria-labelledby="timeline-heading" className="flex flex-col gap-3">

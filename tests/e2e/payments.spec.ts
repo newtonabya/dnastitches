@@ -1,39 +1,16 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
-import { e2eAdminEmail } from "../../playwright.config";
-
-import { expectNoA11yViolations, signInWithMagicLink, uniqueEmail } from "./helpers";
+import {
+  createPiece,
+  expectNoA11yViolations,
+  payOnDevGateway,
+  signInAsAdminSlot,
+  signInWithMagicLink,
+  uniqueEmail,
+} from "./helpers";
 
 // Admin slots 9–10 are reserved for this file. Payments run through the dev gateway
 // (/dev/paystack): the E2E server has no PAYSTACK_SECRET_KEY.
-async function signInAsAdmin(page: Page, slot: number, to: string) {
-  await page.goto(`/sign-in?callbackUrl=${encodeURIComponent(to)}`);
-  await signInWithMagicLink(page, e2eAdminEmail(test.info().project.name, slot));
-  await expect(page.getByRole("heading", { level: 1 })).toBeVisible({ timeout: 20_000 });
-}
-
-/** Creates a fresh published 1-of-1 piece so purchases never sell out the seed products. */
-async function createPiece(page: Page, name: string): Promise<string> {
-  await page.goto("/admin/products/new");
-  const form = page.getByRole("form", { name: "New product" });
-  await form.getByLabel("Name", { exact: true }).fill(name);
-  await form.getByLabel("Price (₦)").fill("120,000");
-  await form.getByLabel("Quantity in stock").fill("1");
-  await form.getByLabel("Description").fill("A piece bought in the payments E2E test.");
-  await form.getByLabel("Fabric composition").fill("100% cotton");
-  await form.getByLabel("Care instructions").fill("Dry clean only.");
-  await form.getByLabel("Bust").fill("90");
-  await form.getByLabel("Published (visible in the shop)").check();
-  await form.getByRole("button", { name: "Create product" }).click();
-  await expect(page.getByText("Product created and published.")).toBeVisible();
-  return (await page.getByText(/^\/shop\//).textContent())!.replace("/shop/", "").trim();
-}
-
-async function payOnDevGateway(page: Page) {
-  await expect(page).toHaveURL(/\/dev\/paystack\?reference=dna-/, { timeout: 20_000 });
-  await expect(page.getByRole("heading", { name: "Dev payment gateway" })).toBeVisible();
-  await page.getByRole("button", { name: "Simulate successful payment" }).click();
-}
 
 test.describe("Payments (US-A4, US-C4, US-D1)", () => {
   test("a customer buys a 1-of-1 piece and the admin marks it picked up", async ({
@@ -42,7 +19,7 @@ test.describe("Payments (US-A4, US-C4, US-D1)", () => {
   }) => {
     test.setTimeout(120_000);
     const name = `E2E Buy ${Date.now().toString(36)}`;
-    await signInAsAdmin(page, 9, "/admin/products/new");
+    await signInAsAdminSlot(page, 9, "/admin/products/new");
     const slug = await createPiece(page, name);
 
     const customer = await browser.newContext();
@@ -107,7 +84,7 @@ test.describe("Payments (US-A4, US-C4, US-D1)", () => {
     const reference = (await shopper.getByTestId("order-reference").textContent())!.trim();
 
     // Admin quotes it: Measurements taken → Awaiting deposit.
-    await signInAsAdmin(page, 10, "/admin/orders");
+    await signInAsAdminSlot(page, 10, "/admin/orders");
     // Follow the card's link by URL: on narrow screens the board scrolls sideways.
     const href = await page
       .getByRole("article", { name: new RegExp(`^${reference}:`) })

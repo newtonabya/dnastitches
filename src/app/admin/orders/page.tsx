@@ -52,6 +52,7 @@ async function Orders({ searchParams }: Pick<PageProps<"/admin/orders">, "search
 
   const tabs = [
     { href: "/admin/orders", label: "Pipeline", active: view === "board" },
+    { href: "/admin/orders?view=shop", label: "Shop orders", active: view === "shop" },
     {
       href: "/admin/orders?view=closed",
       label: "Completed & cancelled",
@@ -62,7 +63,7 @@ async function Orders({ searchParams }: Pick<PageProps<"/admin/orders">, "search
   return (
     <div className="flex flex-col gap-6">
       <nav aria-label="Order views">
-        <ul className="flex gap-2">
+        <ul className="flex flex-wrap gap-2">
           {tabs.map((t) => (
             <li key={t.href}>
               <Link

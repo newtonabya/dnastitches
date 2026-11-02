@@ -13,6 +13,7 @@
 // - CustomOrderStatusLog.changedById is nullable: null means "system" (e.g. Paystack webhook, US-C4 AC3).
 // - Enums MeasurementTakenBy, RepairStatus, ReminderChannel back the inline unions in §5.2.
 // - MeasurementProfile.previousVersionId / supersededAt: the version chain for D-3 / US-B3 AC3.
+// - RepairRequest.rejectionReason: the customer-facing reason for a rejection (US-D3 AC3).
 
 generator client {
   provider = "prisma-client"
@@ -479,10 +480,11 @@ model RepairRequest {
   description   String
   photoUrls     String[]
   status        RepairStatus @default(OPEN)
-  adminNotes    String?
-  resolvedAt    DateTime?
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  adminNotes      String? // private — never shown to the customer
+  rejectionReason String? // shown to the customer when status = REJECTED (US-D3 AC3)
+  resolvedAt      DateTime? // set when RESOLVED or REJECTED
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 
   user        User         @relation(fields: [userId], references: [id], onDelete: Restrict)
   order       Order?       @relation(fields: [orderId], references: [id], onDelete: Restrict)
@@ -490,6 +492,8 @@ model RepairRequest {
 
   @@index([userId])
   @@index([status])
+  @@index([orderId])
+  @@index([customOrderId])
 }
 
 // ─────────────────────────────────────────────────────────────
