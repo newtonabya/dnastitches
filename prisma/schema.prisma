@@ -12,6 +12,7 @@
 // - Order.fulfilledAt: referenced by US-A4 AC8 (starts the defect window).
 // - CustomOrderStatusLog.changedById is nullable: null means "system" (e.g. Paystack webhook, US-C4 AC3).
 // - Enums MeasurementTakenBy, RepairStatus, ReminderChannel back the inline unions in §5.2.
+// - MeasurementProfile.previousVersionId / supersededAt: the version chain for D-3 / US-B3 AC3.
 
 generator client {
   provider = "prisma-client"
@@ -379,27 +380,34 @@ model Payment {
 /// Versioned by creation: edits create a new row (D-3).
 /// At most one `isDefault = true` per user (enforced in a transaction).
 model MeasurementProfile {
-  id        String             @id @default(cuid())
-  userId    String
-  label     String // e.g. "Wedding 2026"
-  unit      MeasurementUnit
-  bust      Decimal            @db.Decimal(6, 1)
-  waist     Decimal            @db.Decimal(6, 1)
-  hips      Decimal            @db.Decimal(6, 1)
-  shoulder  Decimal?           @db.Decimal(6, 1)
-  armLength Decimal?           @db.Decimal(6, 1)
-  inseam    Decimal?           @db.Decimal(6, 1)
-  height    Decimal?           @db.Decimal(6, 1)
-  notes     String?
-  takenBy   MeasurementTakenBy @default(SELF)
-  isDefault Boolean            @default(false)
-  createdAt DateTime           @default(now())
-  updatedAt DateTime           @updatedAt
+  id                String             @id @default(cuid())
+  userId            String
+  label             String // e.g. "Wedding 2026"
+  unit              MeasurementUnit
+  bust              Decimal            @db.Decimal(6, 1)
+  waist             Decimal            @db.Decimal(6, 1)
+  hips              Decimal            @db.Decimal(6, 1)
+  shoulder          Decimal?           @db.Decimal(6, 1)
+  armLength         Decimal?           @db.Decimal(6, 1)
+  inseam            Decimal?           @db.Decimal(6, 1)
+  height            Decimal?           @db.Decimal(6, 1)
+  notes             String?
+  takenBy           MeasurementTakenBy @default(SELF)
+  isDefault         Boolean            @default(false)
+  /// Version chain (D-3): an edit creates a new row pointing at the row it replaces.
+  previousVersionId String?            @unique
+  /// Set when a newer version replaces this one. Customers see only current (null) rows.
+  supersededAt      DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
 
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  customOrders CustomOrder[]
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  previousVersion MeasurementProfile? @relation("MeasurementProfileVersions", fields: [previousVersionId], references: [id], onDelete: SetNull)
+  nextVersion     MeasurementProfile? @relation("MeasurementProfileVersions")
+  customOrders    CustomOrder[]
 
   @@index([userId, createdAt])
+  @@index([userId, supersededAt])
 }
 
 /// Balance due = quotedPriceKobo + deliveryFeeKobo − sum(successful payments).
