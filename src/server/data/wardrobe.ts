@@ -71,6 +71,17 @@ export async function getWardrobeOrder(db: Db, userId: string, orderId: string) 
       quoteSentAt: true,
       fulfillmentMethod: true,
       createdAt: true,
+      completedAt: true,
+      repairRequests: {
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          status: true,
+          description: true,
+          rejectionReason: true,
+          createdAt: true,
+        },
+      },
       fabricSwatch: { select: { name: true, colorHex: true } },
       address: { select: { recipientName: true, line1: true, city: true, state: true } },
       statusLogs: {
