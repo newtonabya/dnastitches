@@ -72,6 +72,11 @@ export async function getWardrobeOrder(db: Db, userId: string, orderId: string) 
       fulfillmentMethod: true,
       createdAt: true,
       completedAt: true,
+      appointments: {
+        where: { status: { in: ["REQUESTED", "CONFIRMED"] } },
+        orderBy: { startsAt: "asc" },
+        select: { id: true, type: true, status: true, startsAt: true, endsAt: true },
+      },
       repairRequests: {
         orderBy: { createdAt: "desc" },
         select: {

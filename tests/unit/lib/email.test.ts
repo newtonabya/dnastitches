@@ -17,6 +17,30 @@ afterEach(() => {
 });
 
 describe("email (PRD §9 email abstraction)", () => {
+  it("sends attachments to Resend as base64 and lists them in dev logs", async () => {
+    const ics = {
+      filename: "invite.ics",
+      content: "BEGIN:VCALENDAR",
+      contentType: "text/calendar",
+    };
+    const info = jest.spyOn(console, "info").mockImplementation(() => {});
+    await sendEmail({ ...message, attachments: [ics] });
+    expect(info.mock.calls[0]![0]).toContain("Attachments: invite.ics");
+
+    mockEnv.RESEND_API_KEY = "re_test";
+    const fetchMock = jest.fn(async () => new Response("{}", { status: 200 }));
+    global.fetch = fetchMock as unknown as typeof fetch;
+    await sendEmail({ ...message, attachments: [ics] });
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(JSON.parse(init.body as string).attachments).toEqual([
+      {
+        filename: "invite.ics",
+        content: Buffer.from("BEGIN:VCALENDAR").toString("base64"),
+        content_type: "text/calendar",
+      },
+    ]);
+  });
+
   it("logs instead of sending when RESEND_API_KEY is not set", async () => {
     const info = jest.spyOn(console, "info").mockImplementation(() => {});
     expect(await sendEmail(message)).toBe(true);

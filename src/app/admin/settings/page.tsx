@@ -1,18 +1,33 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
+import {
+  AvailabilityRuleForm,
+  BlackoutDateForm,
+  RemoveButton,
+} from "@/components/admin/appointment-forms";
 import { DeliveryZoneForm } from "@/components/admin/catalog-forms";
 import { Badge } from "@/components/ui/badge";
 import { env } from "@/lib/env";
 import { formatNGN } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
+import { formatMinute } from "@/lib/scheduling/time";
+import {
+  addAvailabilityRuleAction,
+  addBlackoutDateAction,
+  deleteAvailabilityRuleAction,
+  deleteBlackoutDateAction,
+} from "@/server/actions/admin/appointments";
 import { saveDeliveryZoneAction } from "@/server/actions/admin/settings";
 import { requireAdmin } from "@/server/auth/guards";
 import { listDeliveryZones, overlappingStates } from "@/server/data/admin/settings";
+import { listAvailability } from "@/server/data/appointments";
 
 export const metadata: Metadata = { title: "Settings" };
 
-/** Delivery zones (D-12) and read-only business settings. */
+const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+/** Delivery zones (D-12), booking hours (US-F1) and read-only business settings. */
 export default function SettingsPage() {
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8">
@@ -32,7 +47,10 @@ export default function SettingsPage() {
 
 async function Settings() {
   await requireAdmin();
-  const zones = await listDeliveryZones(prisma);
+  const [zones, availability] = await Promise.all([
+    listDeliveryZones(prisma),
+    listAvailability(prisma, new Date()),
+  ]);
   const overlaps = overlappingStates(zones);
   const placeholders = zones.filter((z) => z.isActive && z.name.startsWith("PLACEHOLDER"));
 
@@ -92,6 +110,67 @@ async function Settings() {
             action={saveDeliveryZoneAction}
           />
         </div>
+      </section>
+
+      <section id="booking" aria-label="Booking hours" className="flex scroll-mt-20 flex-col gap-4">
+        <h2 className="text-xl font-semibold">Booking hours</h2>
+        <p className="text-sm text-muted-foreground">
+          Customers can book {env.CONSULTATION_MINUTES}-minute consultations inside these weekly
+          hours ({env.STUDIO_TIMEZONE} time), at least 24 hours ahead and up to 30 days out.
+          {env.APPOINTMENTS_AUTO_CONFIRM
+            ? " Bookings are confirmed automatically."
+            : " You confirm each booking in Appointments."}
+        </p>
+        {availability.rules.length === 0 ? (
+          <p
+            role="alert"
+            className="rounded-md border border-amber-500/40 bg-amber-500/5 p-3 text-sm"
+          >
+            No booking hours yet, so customers can&apos;t book consultations.
+          </p>
+        ) : (
+          <ul className="divide-y rounded-lg border text-sm" aria-label="Weekly hours">
+            {availability.rules.map((r) => {
+              const label = `${WEEKDAYS[r.weekday]} ${formatMinute(r.startMinute)}–${r.endMinute === 1440 ? "24:00" : formatMinute(r.endMinute)}`;
+              return (
+                <li key={r.id} className="flex items-center justify-between gap-3 px-3 py-2">
+                  <span>{label}</span>
+                  <RemoveButton id={r.id} label={label} action={deleteAvailabilityRuleAction} />
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <AvailabilityRuleForm action={addAvailabilityRuleAction} />
+
+        <h3 className="mt-2 font-semibold">Blocked dates</h3>
+        <p className="text-sm text-muted-foreground">
+          No bookings can be made on these days (holidays, travel). Existing appointments are kept:
+          move or cancel them in Appointments.
+        </p>
+        {availability.blackouts.length > 0 ? (
+          <ul className="divide-y rounded-lg border text-sm" aria-label="Blocked dates">
+            {availability.blackouts.map((b) => {
+              const label = new Intl.DateTimeFormat("en-GB", {
+                timeZone: "UTC",
+                weekday: "short",
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              }).format(new Date(`${b.date}T12:00:00Z`));
+              return (
+                <li key={b.id} className="flex items-center justify-between gap-3 px-3 py-2">
+                  <span>
+                    {label}
+                    {b.reason ? <span className="text-muted-foreground"> · {b.reason}</span> : null}
+                  </span>
+                  <RemoveButton id={b.id} label={label} action={deleteBlackoutDateAction} />
+                </li>
+              );
+            })}
+          </ul>
+        ) : null}
+        <BlackoutDateForm action={addBlackoutDateAction} />
       </section>
 
       <section aria-label="Business settings" className="flex flex-col gap-3">

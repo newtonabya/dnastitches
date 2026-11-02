@@ -209,7 +209,9 @@ enum NotificationRequestType {
 | **MeasurementProfile** | `id`, `userId`, `label` (e.g. "Wedding 2026"), `unit`, `bust`, `waist`, `hips`, `shoulder?`, `armLength?`, `inseam?`, `height?`, `notes?`, `takenBy` (`SELF`\|`ADMIN`), `isDefault`, timestamps | A user may have many; exactly zero or one `isDefault = true`. Profiles are **versioned by creation** — edits create a new row so history is preserved (US-C2). |
 | **CustomOrder** | `id`, `reference` (human-readable, e.g. `DNA-2026-0042`), `userId`, `status`, `title`, `description`, `occasion?`, `targetDate?`, `budgetKobo?`, `referenceImageUrls String[]`, `portfolioItemId?`, `sourceProductId?`, `fabricSwatchId?`, `measurementProfileId?`, `quotedPriceKobo?`, `depositKobo?`, `quoteSentAt?`, `completedAt?`, `fulfillmentMethod?`, `addressId?`, `deliveryFeeKobo?`, `adminNotes?` (private), timestamps | `statusLogs CustomOrderStatusLog[]`, `appointments Appointment[]`, `payments Payment[]`. Balance due = `quotedPriceKobo + deliveryFeeKobo − sum(successful payments)`. |
 | **CustomOrderStatusLog** | `id`, `customOrderId`, `fromStatus?`, `toStatus`, `changedById`, `note?`, `createdAt` | Append-only audit trail. |
-| **Appointment** | `id`, `userId`, `customOrderId?`, `type`, `status`, `startsAt`, `endsAt`, `notes?` | [v1.1] |
+| **Appointment** | `id`, `userId`, `customOrderId?`, `type`, `mode` (`IN_STUDIO`\|`VIDEO`), `status`, `startsAt`, `endsAt`, `notes?` (from the customer), `adminNotes?` (private) | [v1.1] No two active (`REQUESTED`/`CONFIRMED`) appointments may overlap: one studio calendar. |
+| **AvailabilityRule** | `id`, `weekday` (0 = Sunday), `startMinute`, `endMinute`, `isActive` | [v1.1] Weekly booking hours in `STUDIO_TIMEZONE`; several per day allowed. |
+| **BlackoutDate** | `id`, `date` (studio-local, unique), `reason?` | [v1.1] No bookings that day; existing appointments are kept. |
 | **Reminder** | `id`, `appointmentId`, `channel` (`EMAIL`), `sendAt`, `sentAt?`, `error?` | [v1.1] Processed by a scheduled job. |
 | **Review** | `id`, `userId`, `productId?`, `customOrderId?`, `rating` (1–5), `body`, `isApproved`, `createdAt` | [v1.1] Exactly one of `productId`/`customOrderId` must be set. |
 | **NotificationRequest** | `id`, `email`, `userId?`, `productId?`, `type`, `createdAt`, `notifiedAt?` | Unique on (`email`, `productId`, `type`). |
@@ -525,6 +527,12 @@ Gates (enforced server-side):
 
 **DoD:** Admin-guarded actions; appointment status changes visible on the Client Profile (US-C2).
 
+**Implementation notes (v1.1 build):**
+- Slots are `CONSULTATION_MINUTES` long, start back-to-back from each rule's start, and must begin at least 24 h ahead (the same cutoff as AC5, so every booking can still be changed). Customers book consultations only; moving a fitting or pickup online isn't offered (contact the studio).
+- AC3 is enforced in a transaction holding a Postgres advisory lock that re-checks the slot and every overlap, rather than a DB constraint (the slot grid can change and admin bookings vary in length).
+- The owner can also book fittings, pickups and other appointments for a custom order from `/admin/orders/[id]` (confirmed immediately), which US-G1's reminders build on. Admin rescheduling may use any free time, not only the weekly hours.
+- Booking hours and blocked dates are managed in `/admin/settings`.
+
 ---
 
 ### Epic G — Automated Fitting Reminders **[v1.1]**
@@ -661,6 +669,10 @@ NEXT_PUBLIC_SITE_URL=
 STUDIO_TIMEZONE=Africa/Lagos
 DEFAULT_CURRENCY=NGN
 MIN_LEAD_TIME_DAYS=14
+STUDIO_ADDRESS=           # shown at checkout and in appointment emails
+STUDIO_HOURS=
+CONSULTATION_MINUTES=60   # v1.1: booked consultation length (= slot length)
+APPOINTMENTS_AUTO_CONFIRM=false  # v1.1: true books straight to CONFIRMED
 ```
 
 ---

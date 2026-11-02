@@ -43,6 +43,9 @@ export default function CustomLandingPage() {
             <Link href="/custom/request">Start a custom request</Link>
           </Button>
           <Button asChild size="lg" variant="outline">
+            <Link href="/custom/book">Book a consultation</Link>
+          </Button>
+          <Button asChild size="lg" variant="outline">
             <Link href="/custom/gallery">Browse the portfolio</Link>
           </Button>
         </div>

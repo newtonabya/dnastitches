@@ -14,6 +14,8 @@
 // - Enums MeasurementTakenBy, RepairStatus, ReminderChannel back the inline unions in §5.2.
 // - MeasurementProfile.previousVersionId / supersededAt: the version chain for D-3 / US-B3 AC3.
 // - RepairRequest.rejectionReason: the customer-facing reason for a rejection (US-D3 AC3).
+// - Appointment.mode (in-studio / video, US-F1) and Appointment.adminNotes (private).
+// - AvailabilityRule, BlackoutDate: the availability model named in US-F1's DoD.
 
 generator client {
   provider = "prisma-client"
@@ -86,6 +88,11 @@ enum AppointmentType {
   MEASUREMENT
   FITTING
   PICKUP
+}
+
+enum AppointmentMode {
+  IN_STUDIO
+  VIDEO
 }
 
 enum AppointmentStatus {
@@ -505,10 +512,12 @@ model Appointment {
   userId        String
   customOrderId String?
   type          AppointmentType
+  mode          AppointmentMode   @default(IN_STUDIO)
   status        AppointmentStatus @default(REQUESTED)
   startsAt      DateTime
   endsAt        DateTime
-  notes         String?
+  notes         String? // from the customer when booking
+  adminNotes    String? // private — never shown to the customer
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 
@@ -518,6 +527,30 @@ model Appointment {
 
   @@index([userId])
   @@index([startsAt])
+  @@index([customOrderId])
+  @@index([status, startsAt])
+}
+
+/// Weekly studio hours for bookings (US-F1), in STUDIO_TIMEZONE local time.
+/// Several rules per weekday are allowed (e.g. a morning and an afternoon block).
+model AvailabilityRule {
+  id          String   @id @default(cuid())
+  weekday     Int // 0 = Sunday … 6 = Saturday
+  startMinute Int // minutes after local midnight, e.g. 600 = 10:00
+  endMinute   Int // exclusive; > startMinute
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([weekday])
+}
+
+/// A studio-local calendar date with no bookings (holidays, travel) (US-F1).
+model BlackoutDate {
+  id        String   @id @default(cuid())
+  date      DateTime @unique @db.Date
+  reason    String?
+  createdAt DateTime @default(now())
 }
 
 model Reminder {

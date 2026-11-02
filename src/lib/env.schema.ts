@@ -106,6 +106,12 @@ export const envSchema = z
     // Shown at checkout for pickup (US-A4 AC2).
     STUDIO_ADDRESS: optionalString,
     STUDIO_HOURS: optionalString,
+    // Booking (US-F1): consultation length, and whether bookings are confirmed instantly.
+    CONSULTATION_MINUTES: intFromString(15, 240, 60),
+    APPOINTMENTS_AUTO_CONFIRM: z
+      .enum(["true", "false", ""])
+      .optional()
+      .transform((v) => v === "true"),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV !== "production") return;

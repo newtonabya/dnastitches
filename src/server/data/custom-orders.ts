@@ -173,6 +173,6 @@ export async function getOwnCustomOrderByReference(
 ) {
   return db.customOrder.findFirst({
     where: { reference, userId },
-    select: { reference: true, title: true, status: true, createdAt: true },
+    select: { id: true, reference: true, title: true, status: true, createdAt: true },
   });
 }
