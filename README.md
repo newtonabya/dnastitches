@@ -6,12 +6,12 @@ A dual-purpose fashion platform: a curated shop for 1-of-1 ready-to-wear pieces 
 custom tailoring journey, run from an admin CRM. **[`PRD.md`](./PRD.md) is the single source of
 truth** for product behaviour, data model and architecture.
 
-**Status:** The MVP (v1.0) is complete, and v1.1 is under way.
+**Status:** The MVP (v1.0) and v1.1 are complete.
 
-- **Customer side:** sign-in and profile (US-E1); the shop gallery, product detail and notify-me (US-A1, A2, D2); the custom journey (US-A3, B1, B2, B3); Paystack checkout for ready-to-wear (US-A4); online deposits and balances (US-C4); My Wardrobe (US-D1); defect repair requests (US-D3); booking consultations (US-F1); fitting and pickup reminder emails (US-G1).
-- **Admin side:** the order pipeline and order detail (US-C1), client profiles (US-C2), catalog management (US-C3), the notify-me CSV export (US-D2), delivery zones (D-12), quotes and offline payments (US-C4), shop orders, repair requests (US-D3), and appointments with booking hours (US-F2).
+- **Customer side:** sign-in and profile (US-E1); the shop gallery, product detail and notify-me (US-A1, A2, D2); the custom journey (US-A3, B1, B2, B3); Paystack checkout for ready-to-wear (US-A4); online deposits and balances (US-C4); My Wardrobe (US-D1); defect repair requests (US-D3); booking consultations (US-F1); fitting and pickup reminder emails (US-G1); reviews (US-H1).
+- **Admin side:** the order pipeline and order detail (US-C1), client profiles (US-C2), catalog management (US-C3), the notify-me CSV export (US-D2), delivery zones (D-12), quotes and offline payments (US-C4), shop orders, repair requests (US-D3), appointments with booking hours (US-F2), and review approval (US-H1).
 
-Still to come in v1.1: reviews (US-H1).
+Next on the roadmap (`PRD.md` §4, v1.2+): SMS/WhatsApp reminders, an analytics dashboard, restock auto-notify and a courier integration.
 
 ## Stack
 
@@ -132,6 +132,16 @@ Something has to call it every 15 minutes. Pick one:
 - **Vercel Cron (Pro plan):** add `{ "path": "/api/cron/reminders", "schedule": "*/15 * * * *" }`
   to `crons` in `vercel.json`. The Hobby plan only allows daily crons, which is too rare for the
   3-hour reminder.
+
+### Reviews
+
+Customers can review a shop order once it's marked picked up or delivered, and a custom order once
+it's completed: 1–5 stars, some text, and the name to show (the default is first name and last
+initial, and the email address is never shown). Each order can be reviewed once. Reviews stay
+hidden until you approve them at `/admin/reviews`, which also lets you hide a published one;
+you're emailed about each new review. Approved reviews appear on the product page, and 4–5 star
+ones as testimonials on the home page. Testimonials for custom pieces say "custom piece" rather
+than the customer's private request title.
 
 ### Defect repairs
 

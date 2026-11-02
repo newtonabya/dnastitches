@@ -5,7 +5,8 @@ import { Client } from "pg";
 /**
  * Before a local E2E run, tidy what earlier runs left behind: unpublish their products
  * (slugs start with "e2e-") so they never push the seeded pieces off the shop's first
- * page, and remove E2E users' appointments and blocked dates so booking slots stay free.
+ * page, remove E2E users' appointments and blocked dates so booking slots stay free, and their
+ * reviews so they never pile up as home-page testimonials.
  * Skipped against a deployed preview (PLAYWRIGHT_BASE_URL), whose data we don't own.
  */
 export default async function globalSetup() {
@@ -20,6 +21,9 @@ export default async function globalSetup() {
       `DELETE FROM "Appointment" WHERE "userId" IN (SELECT id FROM "User" WHERE email LIKE 'e2e-%')`,
     );
     await client.query(`DELETE FROM "BlackoutDate" WHERE reason LIKE 'E2E%'`);
+    await client.query(
+      `DELETE FROM "Review" WHERE "userId" IN (SELECT id FROM "User" WHERE email LIKE 'e2e-%')`,
+    );
   } finally {
     await client.end();
   }
