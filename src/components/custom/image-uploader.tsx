@@ -36,6 +36,7 @@ export function ImageUploader({
   label = "Reference images",
   max = MAX_REFERENCE_IMAGES,
   optional = true,
+  itemLabel = "Reference image",
 }: {
   urls: string[];
   onChange: (urls: string[]) => void;
@@ -49,6 +50,8 @@ export function ImageUploader({
   /** Maximum images in this list. */
   max?: number;
   optional?: boolean;
+  /** Singular name for one image, used in alt text and Remove buttons. */
+  itemLabel?: string;
 }) {
   const id = useId();
   const [errors, setErrors] = useState<string[]>([]);
@@ -90,14 +93,14 @@ export function ImageUploader({
       {urls.length > 0 ? (
         <ul
           className="grid grid-cols-3 gap-3 sm:grid-cols-5"
-          aria-label="Uploaded reference images"
+          aria-label={`Uploaded ${itemLabel.toLowerCase()}s`}
         >
           {urls.map((url, i) => (
             <li key={url} className="flex flex-col gap-1">
               <div className="relative aspect-square overflow-hidden rounded-md bg-muted">
                 <Image
                   src={url}
-                  alt={`Reference image ${i + 1}`}
+                  alt={`${itemLabel} ${i + 1}`}
                   fill
                   sizes="120px"
                   className="object-cover"
@@ -108,7 +111,7 @@ export function ImageUploader({
                 variant="ghost"
                 size="xs"
                 onClick={() => onChange(urls.filter((u) => u !== url))}
-                aria-label={`Remove reference image ${i + 1}`}
+                aria-label={`Remove ${itemLabel.toLowerCase()} ${i + 1}`}
               >
                 Remove
               </Button>

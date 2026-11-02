@@ -3,11 +3,15 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { OrderProgress } from "@/components/account/order-progress";
+import { RepairStatusItem } from "@/components/account/repair-status";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { env } from "@/lib/env";
 import { formatNGN } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
+import { ACTIVE_REPAIR_STATUSES, isWithinDefectWindow } from "@/lib/repairs";
 import { requireUser } from "@/server/auth/guards";
+import { listUserRepairs } from "@/server/data/repairs";
 import { listWardrobe } from "@/server/data/wardrobe";
 
 export const metadata: Metadata = { title: "My Wardrobe" };
@@ -23,8 +27,8 @@ const RTW_STATUS = {
   CANCELLED: "Cancelled",
 } as const;
 
-/** US-D1 AC1: custom orders (active first) and ready-to-wear purchases. */
-export default function WardrobePage() {
+/** US-D1 AC1: custom orders (active first), ready-to-wear purchases and repairs (US-D3). */
+export default function WardrobePage({ searchParams }: PageProps<"/account/wardrobe">) {
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-10 px-4 py-10">
       <h1 className="text-3xl font-semibold tracking-tight">My Wardrobe</h1>
@@ -35,18 +39,35 @@ export default function WardrobePage() {
           </p>
         }
       >
-        <Wardrobe />
+        <Wardrobe searchParams={searchParams} />
       </Suspense>
     </main>
   );
 }
 
-async function Wardrobe() {
+async function Wardrobe({ searchParams }: Pick<PageProps<"/account/wardrobe">, "searchParams">) {
   const user = await requireUser("/account/wardrobe");
-  const { customOrders, orders } = await listWardrobe(prisma, user.id);
+  const [{ customOrders, orders }, repairs, params] = await Promise.all([
+    listWardrobe(prisma, user.id),
+    listUserRepairs(prisma, user.id),
+    searchParams,
+  ]);
+  const now = new Date();
+  const activeRepairFor = new Set(
+    repairs
+      .filter((r) => (ACTIVE_REPAIR_STATUSES as readonly string[]).includes(r.status))
+      .flatMap((r) => [r.orderId, r.customOrderId])
+      .filter(Boolean),
+  );
 
   return (
     <>
+      {params.repair === "reported" ? (
+        <p role="status" className="rounded-md bg-muted p-3 text-sm">
+          Thanks, we&apos;ve received your report and emailed you a copy. We&apos;ll be in touch
+          about getting the piece to us.
+        </p>
+      ) : null}
       <section aria-labelledby="custom-heading" className="flex flex-col gap-4">
         <h2 id="custom-heading" className="text-xl font-semibold">
           Custom pieces
@@ -104,17 +125,55 @@ async function Wardrobe() {
                   </Link>
                   <span className="text-muted-foreground"> · {dateFormat.format(o.createdAt)}</span>
                 </span>
-                <span className="flex items-center gap-3">
+                <span className="flex flex-wrap items-center gap-3">
                   <Badge variant={o.status === "FULFILLED" ? "secondary" : "outline"}>
                     {RTW_STATUS[o.status]}
                   </Badge>
                   <span className="tabular-nums">{formatNGN(o.totalKobo)}</span>
+                  {o.status === "FULFILLED" &&
+                  !activeRepairFor.has(o.id) &&
+                  isWithinDefectWindow(o.fulfilledAt, now, env.REPAIR_WINDOW_DAYS) ? (
+                    <Button asChild size="sm" variant="outline">
+                      <Link
+                        href={`/account/wardrobe/repair?order=${o.id}`}
+                        aria-label={`Report a defect: ${o.product.name}`}
+                      >
+                        Report a defect
+                      </Link>
+                    </Button>
+                  ) : null}
                 </span>
               </li>
             ))}
           </ul>
         )}
       </section>
+
+      {repairs.length > 0 ? (
+        <section aria-labelledby="repairs" className="flex flex-col gap-4">
+          <h2 id="repairs" className="scroll-mt-20 text-xl font-semibold">
+            Repairs
+          </h2>
+          <ul className="flex flex-col gap-3">
+            {repairs.map((r) => (
+              <li key={r.id}>
+                <RepairStatusItem
+                  item={
+                    r.order?.product.name ??
+                    (r.customOrder
+                      ? `${r.customOrder.title} (${r.customOrder.reference})`
+                      : "Piece")
+                  }
+                  status={r.status}
+                  description={r.description}
+                  rejectionReason={r.rejectionReason}
+                  createdAt={r.createdAt}
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </>
   );
 }
