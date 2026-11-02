@@ -7,8 +7,9 @@ custom tailoring journey, run from an admin CRM. **[`PRD.md`](./PRD.md) is the s
 truth** for product behaviour, data model and architecture.
 
 **Status:** Phase 3, building the MVP stories. Done so far: sign-in and profile (US-E1), shop
-gallery (US-A1), product detail (US-A2) and notify-me (US-D2). Other screens are still
-placeholders.
+gallery (US-A1), product detail (US-A2), notify-me (US-D2), and the custom journey: sold-out →
+custom request (US-A3), the multi-step request form (US-B1), the portfolio gallery (US-B2) and
+measurement profiles (US-B3). Admin, payments and My Wardrobe are still placeholders.
 
 ## Stack
 
@@ -76,6 +77,12 @@ missing or malformed variable stops `next dev` / `next build` with a clear messa
 If `AUTH_RESEND_KEY` is empty (development only), magic-link emails aren't sent. Instead the
 sign-in link is printed in the `pnpm dev` terminal; open it in your browser to sign in. Production
 requires a real Resend key.
+
+### Image uploads
+
+Custom-request reference images upload straight to Vercel Blob, using a token issued by
+`/api/uploads`. Without `BLOB_READ_WRITE_TOKEN` the form still works but the uploader is disabled.
+Create a Blob store in Vercel (Storage → Blob) and copy its read-write token into `.env`.
 
 ### Admin access
 
