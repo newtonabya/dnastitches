@@ -148,6 +148,66 @@ test.describe("Consultation scheduler (US-F1, US-F2)", () => {
     await expectNoA11yViolations(page);
   });
 
+  test("the admin books a fitting for an order, with 48 h and 3 h reminders (US-G1)", async ({
+    page,
+    browser,
+  }) => {
+    test.setTimeout(120_000);
+    // A customer submits a request.
+    const customer = await browser.newContext();
+    const me = await customer.newPage();
+    await me.goto("/custom/request");
+    await signInWithMagicLink(me, uniqueEmail("fitting"));
+    await me.getByLabel("Title").fill("Fitting gown");
+    await me.getByLabel("Description").fill("Please make it floor length with long sleeves.");
+    await me.getByRole("button", { name: "Next", exact: true }).click();
+    await me.getByRole("radio", { name: /Not sure/ }).click();
+    await me.getByRole("button", { name: "Next", exact: true }).click();
+    await me.getByLabel("Book a measurement appointment instead").check();
+    await me.getByRole("button", { name: "Next", exact: true }).click();
+    await me.getByRole("button", { name: "Submit request" }).click();
+    const reference = (await me.getByTestId("order-reference").textContent())!.trim();
+    await customer.close();
+
+    // The admin books a fitting on the order page (random evening slot, so parallel runs differ).
+    await signInAsAdminSlot(page, 12, "/admin/orders");
+    const href = await page
+      .getByRole("article", { name: new RegExp(`^${reference}:`) })
+      .getByRole("link", { name: reference })
+      .getAttribute("href");
+    await page.goto(href!);
+    const date = new Date(Date.now() + (5 + Math.floor(Math.random() * 20)) * 86_400_000)
+      .toISOString()
+      .slice(0, 10);
+    const time = `${18 + Math.floor(Math.random() * 3)}:${["00", "15", "30", "45"][Math.floor(Math.random() * 4)]}`;
+    await page.getByText("Book an appointment").click();
+    const form = page.getByRole("form", { name: "Book an appointment" });
+    await form.getByLabel("Type").selectOption({ label: "Fitting" });
+    await form.getByLabel("Date").fill(date);
+    await form.getByLabel(/^Time/).fill(time);
+    await form.getByLabel("Length (minutes)").fill("15");
+    await form.getByRole("button", { name: "Book and email the customer" }).click();
+    await expect(form.getByText("Booked. The customer has been emailed an invite.")).toBeVisible();
+
+    await page.reload();
+    await page
+      .getByRole("region", { name: "Appointments" })
+      .getByRole("link", { name: /^Fitting/ })
+      .click();
+    await expect(page.getByRole("heading", { level: 1, name: "Fitting" })).toBeVisible();
+    await expect(page.getByTestId("appointment-status")).toHaveText("Confirmed");
+    const reminders = page.getByRole("list", { name: "Reminder emails" });
+    await expect(reminders.getByRole("listitem")).toHaveCount(2);
+    await expect(reminders.getByText(/^48 h before/)).toBeVisible();
+    await expect(reminders.getByText(/^3 h before/)).toBeVisible();
+    await expectNoA11yViolations(page);
+
+    // Cancelling removes the pending reminders (AC2).
+    await page.getByRole("button", { name: "Cancel" }).click();
+    await expect(page.getByTestId("appointment-status")).toHaveText("Cancelled");
+    await expect(page.getByRole("region", { name: "Reminders" })).toHaveCount(0);
+  });
+
   test("someone else's appointment can't be moved", async ({ page }) => {
     await page.goto("/custom/book?reschedule=not-mine");
     await signInWithMagicLink(page, uniqueEmail("nosy-booker"));

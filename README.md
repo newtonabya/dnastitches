@@ -8,10 +8,10 @@ truth** for product behaviour, data model and architecture.
 
 **Status:** The MVP (v1.0) is complete, and v1.1 is under way.
 
-- **Customer side:** sign-in and profile (US-E1); the shop gallery, product detail and notify-me (US-A1, A2, D2); the custom journey (US-A3, B1, B2, B3); Paystack checkout for ready-to-wear (US-A4); online deposits and balances (US-C4); My Wardrobe (US-D1); defect repair requests (US-D3); booking consultations (US-F1).
+- **Customer side:** sign-in and profile (US-E1); the shop gallery, product detail and notify-me (US-A1, A2, D2); the custom journey (US-A3, B1, B2, B3); Paystack checkout for ready-to-wear (US-A4); online deposits and balances (US-C4); My Wardrobe (US-D1); defect repair requests (US-D3); booking consultations (US-F1); fitting and pickup reminder emails (US-G1).
 - **Admin side:** the order pipeline and order detail (US-C1), client profiles (US-C2), catalog management (US-C3), the notify-me CSV export (US-D2), delivery zones (D-12), quotes and offline payments (US-C4), shop orders, repair requests (US-D3), and appointments with booking hours (US-F2).
 
-Still to come in v1.1: fitting reminders (US-G1) and reviews (US-H1).
+Still to come in v1.1: reviews (US-H1).
 
 ## Stack
 
@@ -114,6 +114,24 @@ them in `/admin/appointments` (week and list views), where you can also reschedu
 time and mark appointments completed or no-show. Book fittings and pickups for a custom order from
 its admin page. Every booking, change and cancellation emails a calendar invite (`.ics`); the
 owner is emailed when a customer books, moves or cancels.
+
+### Fitting and pickup reminders
+
+Fittings and pickups get reminder emails **48 hours** and **3 hours** before they start
+(US-G1). Reminders are created when you book or move the appointment and removed if it's
+cancelled; each appointment's admin page shows their state. `/api/cron/reminders` sends whatever is
+due. It's protected by `CRON_SECRET`, safe to call repeatedly (each reminder is sent at most once),
+catches up on anything overdue, and retries a failed email on later runs (up to 4 attempts).
+
+Something has to call it every 15 minutes. Pick one:
+
+- **GitHub Actions (free, set up in this repo):** `.github/workflows/reminders.yml` runs every 15
+  minutes. In GitHub → Settings → Secrets and variables → Actions, add a **secret**
+  `CRON_SECRET` (the same value as in Vercel) and a **variable** `SITE_URL` (your production URL).
+  Until both exist, the workflow does nothing. GitHub may start scheduled runs a few minutes late.
+- **Vercel Cron (Pro plan):** add `{ "path": "/api/cron/reminders", "schedule": "*/15 * * * *" }`
+  to `crons` in `vercel.json`. The Hobby plan only allows daily crons, which is too rare for the
+  3-hour reminder.
 
 ### Defect repairs
 
