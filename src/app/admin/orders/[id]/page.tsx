@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
+import { ScheduleAppointmentForm } from "@/components/admin/appointment-forms";
 import {
   AdminNotesForm,
   OfflinePaymentForm,
@@ -18,6 +19,7 @@ import { env } from "@/lib/env";
 import { formatNGN } from "@/lib/money";
 import { formatNigerianPhone } from "@/lib/nigeria";
 import { prisma } from "@/lib/prisma";
+import { APPOINTMENT_STATUS_LABELS, APPOINTMENT_TYPE_LABELS } from "@/lib/scheduling/appointments";
 import { MEASUREMENT_FIELDS } from "@/lib/validators/measurements";
 import {
   recordOfflinePaymentAction,
@@ -25,8 +27,10 @@ import {
   updateAdminNotesAction,
   updateCustomOrderStatus,
 } from "@/server/actions/admin/orders";
+import { scheduleAppointmentAction } from "@/server/actions/admin/appointments";
 import { requireAdmin } from "@/server/auth/guards";
 import { getAdminOrderDetail } from "@/server/data/admin/orders";
+import { listOrderAppointments } from "@/server/data/appointments";
 
 export const metadata: Metadata = { title: "Custom order" };
 
@@ -62,8 +66,21 @@ export default function AdminOrderPage({ params }: PageProps<"/admin/orders/[id]
 async function OrderDetail({ params }: Pick<PageProps<"/admin/orders/[id]">, "params">) {
   await requireAdmin();
   const { id } = await params;
-  const order = await getAdminOrderDetail(prisma, id);
+  const [order, appointments] = await Promise.all([
+    getAdminOrderDetail(prisma, id),
+    listOrderAppointments(prisma, id),
+  ]);
   if (!order) notFound();
+  const timeZone = env.STUDIO_TIMEZONE;
+  const apptTime = new Intl.DateTimeFormat("en-GB", {
+    timeZone,
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  });
 
   let suggestedDeliveryFeeKobo = 0;
   if (order.fulfillmentMethod === "DELIVERY" && order.address) {
@@ -265,6 +282,38 @@ async function OrderDetail({ params }: Pick<PageProps<"/admin/orders/[id]">, "pa
             depositPaid={order.balance.hasSuccessfulDeposit}
             action={updateCustomOrderStatus}
           />
+        </Section>
+
+        <Section title="Appointments">
+          {appointments.length > 0 ? (
+            <ul className="flex flex-col gap-2 text-sm">
+              {appointments.map((a) => (
+                <li key={a.id}>
+                  <Link href={`/admin/appointments/${a.id}`} className="underline">
+                    {APPOINTMENT_TYPE_LABELS[a.type]} · {apptTime.format(a.startsAt)}
+                  </Link>{" "}
+                  <span className="text-muted-foreground">
+                    · {APPOINTMENT_STATUS_LABELS[a.status]}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted-foreground">No appointments yet.</p>
+          )}
+          {order.status !== "COMPLETED" && order.status !== "CANCELLED" ? (
+            <details className="rounded-md border p-3">
+              <summary className="cursor-pointer text-sm font-medium">Book an appointment</summary>
+              <div className="mt-3">
+                <ScheduleAppointmentForm
+                  customOrderId={order.id}
+                  timeZoneLabel={`${timeZone.split("/").pop()!.replace(/_/g, " ")} time`}
+                  defaultMinutes={env.CONSULTATION_MINUTES}
+                  action={scheduleAppointmentAction}
+                />
+              </div>
+            </details>
+          ) : null}
         </Section>
 
         <Section title="Timeline">

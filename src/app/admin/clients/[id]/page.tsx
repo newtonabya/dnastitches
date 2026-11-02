@@ -11,6 +11,7 @@ import { formatNGN } from "@/lib/money";
 import { formatNigerianPhone } from "@/lib/nigeria";
 import { prisma } from "@/lib/prisma";
 import { REPAIR_STATUS_LABELS } from "@/lib/repairs";
+import { APPOINTMENT_STATUS_LABELS, APPOINTMENT_TYPE_LABELS } from "@/lib/scheduling/appointments";
 import { cn } from "@/lib/utils";
 import { MEASUREMENT_FIELDS } from "@/lib/validators/measurements";
 import { recordClientMeasurementAction } from "@/server/actions/admin/clients";
@@ -181,8 +182,10 @@ async function Profile({ params }: Pick<PageProps<"/admin/clients/[id]">, "param
             <ul className="flex flex-col gap-2 text-sm">
               {profile.appointments.map((a) => (
                 <li key={a.id}>
-                  {a.type.toLowerCase()} · {a.status.toLowerCase().replace(/_/g, " ")} ·{" "}
-                  {dateTime.format(a.startsAt)}
+                  <Link href={`/admin/appointments/${a.id}`} className="underline">
+                    {APPOINTMENT_TYPE_LABELS[a.type]}
+                  </Link>{" "}
+                  · {APPOINTMENT_STATUS_LABELS[a.status]} · {dateTime.format(a.startsAt)}
                 </li>
               ))}
             </ul>
