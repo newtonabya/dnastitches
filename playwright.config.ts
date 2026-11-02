@@ -14,7 +14,7 @@ export const E2E_PROJECTS = ["chromium", "mobile"] as const;
 export const e2eAdminEmail = (project: string, slot: number) =>
   `e2e-admin-${project}-${slot}@example.com`;
 const E2E_ADMIN_EMAILS = E2E_PROJECTS.flatMap((p) =>
-  [1, 2, 3, 4].map((slot) => e2eAdminEmail(p, slot)),
+  [1, 2, 3, 4, 5, 6, 7, 8].map((slot) => e2eAdminEmail(p, slot)),
 ).join(",");
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://localhost:${PORT}`;
 

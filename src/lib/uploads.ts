@@ -49,12 +49,18 @@ export function isBlobUrl(value: string): boolean {
   }
 }
 
-/** Upload pathname prefix per user, so uploads are namespaced and attributable. */
-export function uploadPathname(userId: string, filename: string): string {
+/** Where customers' custom-request images go: namespaced per user. */
+export const customRequestUploadPrefix = (userId: string) => `custom-requests/${userId}`;
+
+/** Admin catalog images (products, swatches, portfolio). Only admins may upload here. */
+export const CATALOG_UPLOAD_PREFIX = "catalog";
+
+/** Upload pathname under a prefix, with a sanitised filename. */
+export function uploadPathname(prefix: string, filename: string): string {
   const safe =
     filename
       .toLowerCase()
       .replace(/[^a-z0-9._-]+/g, "-")
       .replace(/^-+|-+$/g, "") || "image";
-  return `custom-requests/${userId}/${safe}`;
+  return `${prefix}/${safe}`;
 }

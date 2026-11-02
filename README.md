@@ -9,6 +9,11 @@ truth** for product behaviour, data model and architecture.
 **Status:** Phase 3, building the MVP stories. Done so far:
 
 - **Customer side:** sign-in and profile (US-E1); the shop gallery, product detail and notify-me (US-A1, A2, D2); the custom journey (US-A3, B1, B2, B3).
+- **Admin side:** the order pipeline and order detail (US-C1), client profiles (US-C2), catalog management (US-C3), the notify-me CSV export (US-D2), delivery zones (D-12), and quotes and offline payments (admin side of US-C4).
+
+Still to come: Paystack checkout and payments (US-A4, C4), My Wardrobe (US-D1) and repairs (US-D3).
+
+- **Customer side:** sign-in and profile (US-E1); the shop gallery, product detail and notify-me (US-A1, A2, D2); the custom journey (US-A3, B1, B2, B3).
 - **Admin side:** the order pipeline and order detail (US-C1), client profiles (US-C2), and quotes and offline payments (admin side of US-C4).
 
 Still to come: catalog management (US-C3), Paystack payments, My Wardrobe and repairs.
@@ -98,7 +103,9 @@ accounts, so your own admin email isn't used by the tests.
 ### Delivery zones (launch blocker)
 
 The seed creates delivery zones named **`PLACEHOLDER — …`** with made-up fees so delivery flows can
-be built (D-12). Replace them with real zones and fees in `/admin/settings` before launch.
+be built (D-12). Replace them with real zones and fees in **`/admin/settings`** before launch:
+edit or deactivate each placeholder and add your own. Until you do, the settings page shows a
+warning.
 
 ## Scripts
 

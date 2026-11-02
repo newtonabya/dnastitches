@@ -7,6 +7,7 @@ import { MeasurementFields } from "@/components/account/measurement-fields";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { earliestTargetDate } from "@/lib/custom-order/lead-time";
+import { customRequestUploadPrefix } from "@/lib/uploads";
 import { cn } from "@/lib/utils";
 import {
   fabricStepSchema,
@@ -366,7 +367,7 @@ export function RequestStepper({
           <ImageUploader
             urls={design.referenceImageUrls}
             onChange={(referenceImageUrls) => setDesign((d) => ({ ...d, referenceImageUrls }))}
-            userId={userId}
+            pathPrefix={customRequestUploadPrefix(userId)}
             uploadsEnabled={uploadsEnabled}
             error={
               errors[0]!.referenceImageUrls ??

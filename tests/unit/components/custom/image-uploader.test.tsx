@@ -18,7 +18,7 @@ function Harness({
     <ImageUploader
       urls={urls}
       onChange={setUrls}
-      userId="u1"
+      pathPrefix="custom-requests/u1"
       uploadsEnabled={uploadsEnabled}
       uploader={uploader}
     />
