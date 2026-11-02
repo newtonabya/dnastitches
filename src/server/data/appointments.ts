@@ -28,6 +28,7 @@ import type {
   BookingInput,
   CustomerRescheduleInput,
 } from "@/lib/validators/appointments";
+import { syncReminders } from "@/server/data/reminders";
 
 /**
  * Appointments (US-F1, US-F2). Plain Prisma functions; callers pass the db, the clock
@@ -188,6 +189,7 @@ export async function rescheduleOwnAppointment(
         status: config.autoConfirm ? "CONFIRMED" : "REQUESTED",
       },
     });
+    await syncReminders(tx, appt.id, now);
     return { ok: true };
   });
 }
@@ -209,7 +211,9 @@ export async function cancelOwnAppointment(
     where: { id: appointmentId, userId, status: appt.status },
     data: { status: "CANCELLED" },
   });
-  return count === 1 ? { ok: true } : { ok: false, code: "TOO_LATE" };
+  if (count !== 1) return { ok: false, code: "TOO_LATE" };
+  await syncReminders(db, appointmentId, now);
+  return { ok: true };
 }
 
 export type AdminAppointmentResult =
@@ -240,6 +244,7 @@ export async function setAppointmentStatus(
     data: { status: input.to },
   });
   if (count === 0) return { ok: false, code: "INVALID_TRANSITION", from: appt.status };
+  await syncReminders(db, input.appointmentId, now);
   return { ok: true, appointmentId: input.appointmentId, status: input.to };
 }
 
@@ -269,6 +274,7 @@ export async function rescheduleAppointment(
     if (overlapsAny({ startsAt, endsAt }, await busyIntervals(tx, now, input.appointmentId)))
       return { ok: false, code: "OVERLAP" };
     await tx.appointment.update({ where: { id: input.appointmentId }, data: { startsAt, endsAt } });
+    await syncReminders(tx, input.appointmentId, now);
     return { ok: true, appointmentId: input.appointmentId, status: appt.status };
   });
 }
@@ -306,6 +312,7 @@ export async function scheduleAppointment(
       },
       select: { id: true },
     });
+    await syncReminders(tx, appt.id, now);
     return { ok: true, appointmentId: appt.id, status: "CONFIRMED" };
   });
 }

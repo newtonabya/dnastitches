@@ -16,6 +16,7 @@
 // - RepairRequest.rejectionReason: the customer-facing reason for a rejection (US-D3 AC3).
 // - Appointment.mode (in-studio / video, US-F1) and Appointment.adminNotes (private).
 // - AvailabilityRule, BlackoutDate: the availability model named in US-F1's DoD.
+// - Reminder.offsetMinutes, skippedAt, attempts, lockedUntil: idempotent sending and retries (US-G1).
 
 generator client {
   provider = "prisma-client"
@@ -553,18 +554,25 @@ model BlackoutDate {
   createdAt DateTime @default(now())
 }
 
+/// One email reminder per appointment and offset (US-G1). Sent at most once: a runner
+/// must claim the row (lockedUntil) before sending, and sentAt is set after.
 model Reminder {
   id            String          @id @default(cuid())
   appointmentId String
   channel       ReminderChannel @default(EMAIL)
+  offsetMinutes Int // minutes before the appointment starts, e.g. 2880 (48 h) or 180 (3 h)
   sendAt        DateTime
   sentAt        DateTime?
-  error         String?
+  skippedAt     DateTime? // not sent on purpose (appointment changed, or a later reminder was due)
+  attempts      Int             @default(0)
+  lockedUntil   DateTime? // claim lease while a runner is sending
+  error         String? // last failure or skip reason
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 
   appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
 
+  @@unique([appointmentId, offsetMinutes])
   @@index([sendAt, sentAt])
 }
 

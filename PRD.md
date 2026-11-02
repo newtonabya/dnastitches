@@ -551,6 +551,11 @@ Gates (enforced server-side):
 - [ ] Email provider abstraction in `src/lib/email.ts` (Resend recommended); templates via React Email.
 - [ ] Unit tests for scheduling math; integration test for idempotency.
 
+
+**Implementation notes (v1.1 build):**
+- A reminder whose time has already passed when the appointment is booked or moved isn't created (the booking email and calendar invite cover it). If the job was down and both reminders are overdue, only the 3 h one is sent.
+- At-most-once (AC3): a runner claims each reminder with a conditional update and a 10-minute lease before sending; `sentAt` is set after. "Retried up to 3 times" (AC4) means 4 attempts in total; the last error is kept on the row and shown on the admin appointment page.
+- The 15-minute trigger is a scheduled GitHub Actions workflow by default, because Vercel Cron more often than daily needs the Pro plan. Vercel Cron works too (see README).
 ---
 
 ### Epic H — Reviews **[v1.1]**

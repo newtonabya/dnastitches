@@ -1,0 +1,38 @@
+# Fitting and pickup reminders (US-G1): calls the reminders endpoint every 15 minutes.
+# A free alternative to a 15-minute Vercel Cron, which needs the Vercel Pro plan.
+#
+# Setup (GitHub → Settings → Secrets and variables → Actions):
+#   - Secret   CRON_SECRET: the same value as CRON_SECRET in Vercel
+#   - Variable SITE_URL:    the production URL, e.g. https://dnastitches.com
+# Until both are set, the job does nothing. GitHub may delay scheduled runs by a few
+# minutes; the endpoint catches up on anything overdue, and each reminder is sent once.
+name: Reminders
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: reminders
+  cancel-in-progress: false
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Call the reminders endpoint
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          if [ -z "$CRON_SECRET" ] || [ -z "$SITE_URL" ]; then
+            echo "::notice::CRON_SECRET or SITE_URL isn't set; skipping."
+            exit 0
+          fi
+          curl --fail-with-body --silent --show-error --max-time 60 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "${SITE_URL%/}/api/cron/reminders"
