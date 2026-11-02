@@ -20,6 +20,7 @@ import {
   isActiveAppointment,
   needsStarted,
 } from "@/lib/scheduling/appointments";
+import { MAX_REMINDER_ATTEMPTS, needsReminders } from "@/lib/scheduling/reminders";
 import { formatMinute, localDateOf, localMinuteOf } from "@/lib/scheduling/time";
 import {
   rescheduleAppointmentAction,
@@ -28,6 +29,7 @@ import {
 } from "@/server/actions/admin/appointments";
 import { requireAdmin } from "@/server/auth/guards";
 import { getAdminAppointment } from "@/server/data/appointments";
+import { listAppointmentReminders } from "@/server/data/reminders";
 import { bookingConfig } from "@/server/scheduling-config";
 
 export const metadata: Metadata = { title: "Appointment" };
@@ -57,8 +59,20 @@ export default function AdminAppointmentPage({ params }: PageProps<"/admin/appoi
 async function Detail({ params }: Pick<PageProps<"/admin/appointments/[id]">, "params">) {
   await requireAdmin();
   const { id } = await params;
-  const a = await getAdminAppointment(prisma, id);
+  const [a, reminders] = await Promise.all([
+    getAdminAppointment(prisma, id),
+    listAppointmentReminders(prisma, id),
+  ]);
   if (!a) notFound();
+  const reminderTime = new Intl.DateTimeFormat("en-GB", {
+    timeZone: bookingConfig().timeZone,
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  });
   const { timeZone } = bookingConfig();
   const now = new Date();
   // Completed / no-show only appear once the appointment has started.
@@ -134,6 +148,34 @@ async function Detail({ params }: Pick<PageProps<"/admin/appointments/[id]">, "p
             timeZoneLabel={`${city} time`}
             action={rescheduleAppointmentAction}
           />
+        </Section>
+      ) : null}
+
+      {reminders.length > 0 || needsReminders(a) ? (
+        <Section title="Reminders">
+          {reminders.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No reminders: both reminder times had passed when this was booked.
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-1 text-sm" aria-label="Reminder emails">
+              {reminders.map((r) => (
+                <li key={r.id}>
+                  <span className="font-medium">{r.offsetMinutes / 60} h before</span> ·{" "}
+                  {r.sentAt
+                    ? `sent ${reminderTime.format(r.sentAt)}`
+                    : r.skippedAt
+                      ? (r.error ?? "skipped")
+                      : r.attempts >= MAX_REMINDER_ATTEMPTS
+                        ? `failed after ${r.attempts} attempts: ${r.error ?? "unknown error"}`
+                        : `due ${reminderTime.format(r.sendAt)}${r.attempts > 0 ? ` (retrying after ${r.attempts} failed attempt${r.attempts === 1 ? "" : "s"}: ${r.error ?? "unknown error"})` : ""}`}
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Fittings and pickups get email reminders 48 hours and 3 hours before.
+          </p>
         </Section>
       ) : null}
 
