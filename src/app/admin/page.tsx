@@ -6,6 +6,7 @@ import { STATUS_LABELS } from "@/lib/custom-order/status";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/server/auth/guards";
 import { countPendingRequests } from "@/server/data/appointments";
+import { countPendingReviews } from "@/server/data/reviews";
 import {
   PIPELINE_STATUSES,
   countOrdersByStatus,
@@ -39,12 +40,13 @@ export default function AdminDashboardPage() {
 
 async function Summary() {
   await requireAdmin();
-  const [counts, cards, toFulfil, openRepairs, toConfirm] = await Promise.all([
+  const [counts, cards, toFulfil, openRepairs, toConfirm, toApprove] = await Promise.all([
     countOrdersByStatus(prisma),
     listPipelineCards(prisma),
     prisma.order.count({ where: { status: "PAID" } }),
     prisma.repairRequest.count({ where: { status: { in: ["OPEN", "IN_REPAIR"] } } }),
     countPendingRequests(prisma, new Date()),
+    countPendingReviews(prisma),
   ]);
   const newRequests = cards.filter((c) => c.status === "REQUEST_RECEIVED").slice(0, 10);
 
@@ -91,6 +93,15 @@ async function Summary() {
             >
               <span className="text-xs text-muted-foreground">Appointments to confirm</span>
               <span className="text-2xl font-semibold tabular-nums">{toConfirm}</span>
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/admin/reviews"
+              className="flex flex-col rounded-lg border p-3 hover:bg-accent"
+            >
+              <span className="text-xs text-muted-foreground">Reviews to approve</span>
+              <span className="text-2xl font-semibold tabular-nums">{toApprove}</span>
             </Link>
           </li>
           <li>
