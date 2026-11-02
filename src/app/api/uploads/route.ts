@@ -8,11 +8,12 @@ import {
   CATALOG_UPLOAD_PREFIX,
   MAX_UPLOAD_BYTES,
   customRequestUploadPrefix,
+  repairUploadPrefix,
 } from "@/lib/uploads";
 import { getAdminForAction } from "@/server/auth/admin";
 
 /**
- * Vercel Blob client-upload token route (US-B1, US-C3). Issues a short-lived token only
+ * Vercel Blob client-upload token route (US-B1, US-C3, US-D3). Issues a short-lived token only
  * to signed-in users, only for their own path prefix (or the catalog prefix for admins),
  * and only for allowed image types up to 8 MB; Blob enforces those limits on the upload.
  */
@@ -37,7 +38,9 @@ export async function POST(request: Request): Promise<NextResponse> {
         const session = await auth();
         const userId = session?.user?.id;
         if (!userId) throw new UploadAuthError();
-        const ownPath = pathname.startsWith(`${customRequestUploadPrefix(userId)}/`);
+        const ownPath =
+          pathname.startsWith(`${customRequestUploadPrefix(userId)}/`) ||
+          pathname.startsWith(`${repairUploadPrefix(userId)}/`);
         // Catalog images (products, swatches, portfolio) are admin-only; role re-read from the DB.
         const catalogPath =
           pathname.startsWith(`${CATALOG_UPLOAD_PREFIX}/`) && (await getAdminForAction()) !== null;

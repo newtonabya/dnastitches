@@ -52,6 +52,9 @@ export function isBlobUrl(value: string): boolean {
 /** Where customers' custom-request images go: namespaced per user. */
 export const customRequestUploadPrefix = (userId: string) => `custom-requests/${userId}`;
 
+/** Where customers' defect photos go (US-D3): namespaced per user. */
+export const repairUploadPrefix = (userId: string) => `repairs/${userId}`;
+
 /** Admin catalog images (products, swatches, portfolio). Only admins may upload here. */
 export const CATALOG_UPLOAD_PREFIX = "catalog";
 
