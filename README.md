@@ -6,12 +6,12 @@ A dual-purpose fashion platform: a curated shop for 1-of-1 ready-to-wear pieces 
 custom tailoring journey, run from an admin CRM. **[`PRD.md`](./PRD.md) is the single source of
 truth** for product behaviour, data model and architecture.
 
-**Status:** Phase 3 complete. Every MVP story is built:
+**Status:** The MVP (v1.0) is complete, and v1.1 is under way.
 
-- **Customer side:** sign-in and profile (US-E1); the shop gallery, product detail and notify-me (US-A1, A2, D2); the custom journey (US-A3, B1, B2, B3); Paystack checkout for ready-to-wear (US-A4); online deposits and balances (US-C4); My Wardrobe (US-D1); defect repair requests (US-D3).
-- **Admin side:** the order pipeline and order detail (US-C1), client profiles (US-C2), catalog management (US-C3), the notify-me CSV export (US-D2), delivery zones (D-12), quotes and offline payments (US-C4), shop orders (mark as picked up / delivered), and repair requests (US-D3).
+- **Customer side:** sign-in and profile (US-E1); the shop gallery, product detail and notify-me (US-A1, A2, D2); the custom journey (US-A3, B1, B2, B3); Paystack checkout for ready-to-wear (US-A4); online deposits and balances (US-C4); My Wardrobe (US-D1); defect repair requests (US-D3); booking consultations (US-F1).
+- **Admin side:** the order pipeline and order detail (US-C1), client profiles (US-C2), catalog management (US-C3), the notify-me CSV export (US-D2), delivery zones (D-12), quotes and offline payments (US-C4), shop orders, repair requests (US-D3), and appointments with booking hours (US-F2).
 
-The v1.1 stories (consultation scheduler, reminders, reviews) are next on the roadmap in `PRD.md`.
+Still to come in v1.1: fitting reminders (US-G1) and reviews (US-H1).
 
 ## Stack
 
@@ -72,6 +72,7 @@ missing or malformed variable stops `next dev` / `next build` with a clear messa
   `RESEND_API_KEY`, `EMAIL_FROM`, `NEXT_PUBLIC_SITE_URL`.
 - **Optional / defaulted:** `AUTH_GOOGLE_ID` + `AUTH_GOOGLE_SECRET` (set both or neither),
   `CRON_SECRET`, `STUDIO_ADDRESS` and `STUDIO_HOURS` (shown at checkout for pickup),
+  `CONSULTATION_MINUTES=60`, `APPOINTMENTS_AUTO_CONFIRM=false`,
   `DEPOSIT_PERCENT=50`, `REPAIR_WINDOW_DAYS=7`, `STUDIO_TIMEZONE=Africa/Lagos`,
   `DEFAULT_CURRENCY=NGN`, `MIN_LEAD_TIME_DAYS=14`.
 
@@ -100,6 +101,19 @@ Ready-to-wear checkout and custom-order deposits and balances go through Paystac
   checkout, and by a daily cron (`/api/cron/release-reservations`, scheduled in `vercel.json`,
   authorised with `Authorization: Bearer $CRON_SECRET`; the Vercel Hobby plan allows daily crons
   only).
+
+### Consultations and appointments
+
+Customers book a consultation (in the studio or by video) at `/custom/book` and manage it at
+`/account/appointments`. Slots come from the weekly **booking hours** and **blocked dates** in
+`/admin/settings` (the seed adds starter hours, Tuesday–Saturday 10:00–16:00, only if none
+exist). Slots are `CONSULTATION_MINUTES` long (default 60), start at least 24 hours ahead and run
+30 days out, all in `STUDIO_TIMEZONE`. Customers can cancel or move a booking up to 24 hours
+before. Set `APPOINTMENTS_AUTO_CONFIRM=true` to confirm bookings instantly; otherwise you confirm
+them in `/admin/appointments` (week and list views), where you can also reschedule to any free
+time and mark appointments completed or no-show. Book fittings and pickups for a custom order from
+its admin page. Every booking, change and cancellation emails a calendar invite (`.ics`); the
+owner is emailed when a customer books, moves or cancels.
 
 ### Defect repairs
 
