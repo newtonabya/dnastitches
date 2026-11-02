@@ -37,7 +37,7 @@ export async function listWardrobe(db: Db, userId: string, now = new Date()) {
         createdAt: true,
         fulfillmentMethod: true,
         fulfilledAt: true,
-        product: { select: { name: true, slug: true } },
+        product: { select: { id: true, name: true, slug: true } },
       },
     }),
   ]);
@@ -72,6 +72,7 @@ export async function getWardrobeOrder(db: Db, userId: string, orderId: string) 
       fulfillmentMethod: true,
       createdAt: true,
       completedAt: true,
+      reviews: { select: { id: true, isApproved: true, moderatedAt: true } },
       appointments: {
         where: { status: { in: ["REQUESTED", "CONFIRMED"] } },
         orderBy: { startsAt: "asc" },

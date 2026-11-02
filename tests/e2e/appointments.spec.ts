@@ -7,7 +7,8 @@ import {
   uniqueEmail,
 } from "./helpers";
 
-// Admin slot 12 is reserved for this file.
+// Admin slots 12, 14 and 15 are reserved for this file: one per test, because tests run
+// in parallel and concurrent sign-ins to one account invalidate each other's magic links.
 
 /** Pick a random free day and time, so parallel runs rarely want the same slot. */
 async function pickRandomSlot(form: Locator) {
@@ -79,6 +80,10 @@ test.describe("Consultation scheduler (US-F1, US-F2)", () => {
     await page.getByRole("listitem").filter({ hasText: email }).getByRole("link").first().click();
     await expect(page.getByRole("heading", { level: 1, name: "Consultation" })).toBeVisible();
     await expect(page.getByTestId("appointment-status")).toHaveText("Requested");
+    const appointmentDate = await page
+      .getByRole("form", { name: "Reschedule" })
+      .getByLabel("Date")
+      .inputValue();
     await expectNoA11yViolations(page);
     await page.getByRole("button", { name: "Confirm" }).click();
     await expect(page.getByTestId("appointment-status")).toHaveText("Confirmed");
@@ -108,11 +113,16 @@ test.describe("Consultation scheduler (US-F1, US-F2)", () => {
         .first(),
     ).toHaveText("Cancelled");
     await customer.close();
+
+    // The week calendar stays accessible with a cancelled appointment on it.
+    await page.goto(`/admin/appointments?week=${appointmentDate}`);
+    await expect(page.getByRole("link", { name: new RegExp(email.split("@")[0]!) })).toBeVisible();
+    await expectNoA11yViolations(page);
   });
 
   test("the admin edits booking hours and blocks a date", async ({ page }) => {
     test.setTimeout(90_000);
-    await signInAsAdminSlot(page, 12, "/admin/settings");
+    await signInAsAdminSlot(page, 14, "/admin/settings");
     const hours = page.getByRole("region", { name: "Booking hours" });
     await expect(hours).toBeVisible();
 
@@ -170,7 +180,7 @@ test.describe("Consultation scheduler (US-F1, US-F2)", () => {
     await customer.close();
 
     // The admin books a fitting on the order page (random evening slot, so parallel runs differ).
-    await signInAsAdminSlot(page, 12, "/admin/orders");
+    await signInAsAdminSlot(page, 15, "/admin/orders");
     const href = await page
       .getByRole("article", { name: new RegExp(`^${reference}:`) })
       .getByRole("link", { name: reference })

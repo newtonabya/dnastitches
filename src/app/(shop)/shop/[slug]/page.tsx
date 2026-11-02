@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
 
+import { ReviewList } from "@/components/reviews/review-list";
 import { NotifyMeForm } from "@/components/shop/notify-me-form";
 import { ProductGallery } from "@/components/shop/product-gallery";
 import { SpecTable } from "@/components/shop/spec-table";
@@ -14,6 +15,7 @@ import { formatNGN } from "@/lib/money";
 import { createNotificationRequest } from "@/server/actions/notification-request";
 import type { ProductDetailData } from "@/server/data/products";
 import { getProductBySlug } from "@/server/loaders/products";
+import { getProductReviews } from "@/server/loaders/reviews";
 
 export async function generateMetadata({ params }: PageProps<"/shop/[slug]">): Promise<Metadata> {
   const { slug } = await params;
@@ -138,9 +140,18 @@ async function ProductDetail({ params }: Pick<PageProps<"/shop/[slug]">, "params
             </div>
           </dl>
         </section>
+
+        <Suspense fallback={null}>
+          <ProductReviews productId={product.id} />
+        </Suspense>
       </div>
     </article>
   );
+}
+
+/** US-H1 AC3: approved reviews (cached; refreshed when the owner moderates). */
+async function ProductReviews({ productId }: { productId: string }) {
+  return <ReviewList reviews={await getProductReviews(productId)} />;
 }
 
 /** Reads the session (request-time) to pre-fill the email for signed-in customers (US-D2 AC1). */

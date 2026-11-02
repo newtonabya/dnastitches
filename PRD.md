@@ -571,6 +571,12 @@ Gates (enforced server-side):
 **Definition of Done**
 - [ ] Eligibility check server-side; DB unique constraint on (`userId`, `customOrderId`) and (`userId`, `productId`).
 
+**Implementation notes (v1.1 build):**
+- `Review.displayName` is the public name the customer chooses (defaulting to first name and last initial). Emails are never shown, and testimonials for custom orders say "custom piece" rather than the private request title.
+- `Review.moderatedAt` separates "waiting for approval" from "hidden": the owner can approve, or hide a pending or published review. The owner is emailed about each new review.
+- The home page shows the six newest approved reviews of 4–5 stars. A product page shows all its approved reviews with the average rating.
+- Customers can't edit a review after submitting it; they can contact the studio instead.
+
 ---
 
 ## 7. Route Map

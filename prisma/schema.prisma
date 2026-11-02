@@ -17,6 +17,7 @@
 // - Appointment.mode (in-studio / video, US-F1) and Appointment.adminNotes (private).
 // - AvailabilityRule, BlackoutDate: the availability model named in US-F1's DoD.
 // - Reminder.offsetMinutes, skippedAt, attempts, lockedUntil: idempotent sending and retries (US-G1).
+// - Review.displayName (public name the customer chooses) and Review.moderatedAt (pending vs hidden, US-H1).
 
 generator client {
   provider = "prisma-client"
@@ -584,7 +585,9 @@ model Review {
   customOrderId String?
   rating        Int // 1–5
   body          String
+  displayName   String   @default("") // the name shown publicly, chosen by the customer
   isApproved    Boolean  @default(false)
+  moderatedAt   DateTime? // null = waiting for the owner; set + !isApproved = hidden
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -594,6 +597,8 @@ model Review {
 
   @@unique([userId, customOrderId])
   @@unique([userId, productId])
+  @@index([isApproved, createdAt])
+  @@index([productId, isApproved])
 }
 
 // ─────────────────────────────────────────────────────────────

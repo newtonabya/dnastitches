@@ -13,6 +13,7 @@ import { env } from "@/lib/env";
 import { formatNGN } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 import { ACTIVE_REPAIR_STATUSES, isWithinDefectWindow } from "@/lib/repairs";
+import { REVIEW_STATE_LABELS, reviewState } from "@/lib/reviews";
 import { APPOINTMENT_STATUS_LABELS, APPOINTMENT_TYPE_LABELS } from "@/lib/scheduling/appointments";
 import { startCustomPaymentAction } from "@/server/actions/checkout";
 import { requireUser } from "@/server/auth/guards";
@@ -192,6 +193,26 @@ async function Order({
               All my appointments
             </Link>
           </p>
+        </section>
+      ) : null}
+
+      {order.status === "COMPLETED" ? (
+        <section aria-labelledby="review-heading" className="flex flex-col gap-2">
+          <h2 id="review-heading" className="text-lg font-semibold">
+            Your review
+          </h2>
+          {order.reviews[0] ? (
+            <p className="text-sm">
+              Thanks for reviewing this piece. {REVIEW_STATE_LABELS[reviewState(order.reviews[0])]}.
+            </p>
+          ) : (
+            <p className="text-sm">
+              How did we do?{" "}
+              <Link href={`/account/wardrobe/review?customOrder=${order.id}`} className="underline">
+                Leave a review
+              </Link>
+            </p>
+          )}
         </section>
       ) : null}
 

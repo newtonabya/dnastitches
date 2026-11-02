@@ -10,8 +10,10 @@ import { env } from "@/lib/env";
 import { formatNGN } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 import { ACTIVE_REPAIR_STATUSES, isWithinDefectWindow } from "@/lib/repairs";
+import { REVIEW_STATE_LABELS, reviewState } from "@/lib/reviews";
 import { requireUser } from "@/server/auth/guards";
 import { listUserRepairs } from "@/server/data/repairs";
+import { listUserReviewStates } from "@/server/data/reviews";
 import { listWardrobe } from "@/server/data/wardrobe";
 
 export const metadata: Metadata = { title: "My Wardrobe" };
@@ -47,11 +49,13 @@ export default function WardrobePage({ searchParams }: PageProps<"/account/wardr
 
 async function Wardrobe({ searchParams }: Pick<PageProps<"/account/wardrobe">, "searchParams">) {
   const user = await requireUser("/account/wardrobe");
-  const [{ customOrders, orders }, repairs, params] = await Promise.all([
+  const [{ customOrders, orders }, repairs, reviews, params] = await Promise.all([
     listWardrobe(prisma, user.id),
     listUserRepairs(prisma, user.id),
+    listUserReviewStates(prisma, user.id),
     searchParams,
   ]);
+  const reviewByProduct = new Map(reviews.flatMap((r) => (r.productId ? [[r.productId, r]] : [])));
   const now = new Date();
   const activeRepairFor = new Set(
     repairs
@@ -62,6 +66,11 @@ async function Wardrobe({ searchParams }: Pick<PageProps<"/account/wardrobe">, "
 
   return (
     <>
+      {params.review === "sent" ? (
+        <p role="status" className="rounded-md bg-muted p-3 text-sm">
+          Thank you for your review! It will appear on the site once we&apos;ve checked it.
+        </p>
+      ) : null}
       {params.repair === "reported" ? (
         <p role="status" className="rounded-md bg-muted p-3 text-sm">
           Thanks, we&apos;ve received your report and emailed you a copy. We&apos;ll be in touch
@@ -141,6 +150,25 @@ async function Wardrobe({ searchParams }: Pick<PageProps<"/account/wardrobe">, "
                         Report a defect
                       </Link>
                     </Button>
+                  ) : null}
+                  {o.status === "FULFILLED" ? (
+                    reviewByProduct.has(o.product.id) ? (
+                      <span className="text-xs text-muted-foreground">
+                        Review:{" "}
+                        {REVIEW_STATE_LABELS[
+                          reviewState(reviewByProduct.get(o.product.id)!)
+                        ].toLowerCase()}
+                      </span>
+                    ) : (
+                      <Button asChild size="sm" variant="outline">
+                        <Link
+                          href={`/account/wardrobe/review?order=${o.id}`}
+                          aria-label={`Leave a review: ${o.product.name}`}
+                        >
+                          Leave a review
+                        </Link>
+                      </Button>
+                    )
                   ) : null}
                 </span>
               </li>
