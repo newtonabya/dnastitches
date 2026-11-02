@@ -103,6 +103,9 @@ export const envSchema = z
       .refine(isValidTimeZone, "must be a valid IANA time zone"),
     DEFAULT_CURRENCY: z.literal("NGN").optional().default("NGN"),
     MIN_LEAD_TIME_DAYS: intFromString(0, 365, 14),
+    // Shown at checkout for pickup (US-A4 AC2).
+    STUDIO_ADDRESS: optionalString,
+    STUDIO_HOURS: optionalString,
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV !== "production") return;
