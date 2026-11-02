@@ -8,15 +8,10 @@ truth** for product behaviour, data model and architecture.
 
 **Status:** Phase 3, building the MVP stories. Done so far:
 
-- **Customer side:** sign-in and profile (US-E1); the shop gallery, product detail and notify-me (US-A1, A2, D2); the custom journey (US-A3, B1, B2, B3).
-- **Admin side:** the order pipeline and order detail (US-C1), client profiles (US-C2), catalog management (US-C3), the notify-me CSV export (US-D2), delivery zones (D-12), and quotes and offline payments (admin side of US-C4).
+- **Customer side:** sign-in and profile (US-E1); the shop gallery, product detail and notify-me (US-A1, A2, D2); the custom journey (US-A3, B1, B2, B3); Paystack checkout for ready-to-wear (US-A4); online deposits and balances (US-C4); My Wardrobe (US-D1).
+- **Admin side:** the order pipeline and order detail (US-C1), client profiles (US-C2), catalog management (US-C3), the notify-me CSV export (US-D2), delivery zones (D-12), quotes and offline payments (US-C4), and shop orders (mark as picked up / delivered).
 
-Still to come: Paystack checkout and payments (US-A4, C4), My Wardrobe (US-D1) and repairs (US-D3).
-
-- **Customer side:** sign-in and profile (US-E1); the shop gallery, product detail and notify-me (US-A1, A2, D2); the custom journey (US-A3, B1, B2, B3).
-- **Admin side:** the order pipeline and order detail (US-C1), client profiles (US-C2), and quotes and offline payments (admin side of US-C4).
-
-Still to come: catalog management (US-C3), Paystack payments, My Wardrobe and repairs.
+Still to come: defect repairs (US-D3).
 
 ## Stack
 
@@ -76,14 +71,35 @@ missing or malformed variable stops `next dev` / `next build` with a clear messa
   `BLOB_READ_WRITE_TOKEN`, `PAYSTACK_SECRET_KEY`, `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY`,
   `RESEND_API_KEY`, `EMAIL_FROM`, `NEXT_PUBLIC_SITE_URL`.
 - **Optional / defaulted:** `AUTH_GOOGLE_ID` + `AUTH_GOOGLE_SECRET` (set both or neither),
-  `CRON_SECRET` (v1.1), `DEPOSIT_PERCENT=50`, `REPAIR_WINDOW_DAYS=7`,
-  `STUDIO_TIMEZONE=Africa/Lagos`, `DEFAULT_CURRENCY=NGN`, `MIN_LEAD_TIME_DAYS=14`.
+  `CRON_SECRET`, `STUDIO_ADDRESS` and `STUDIO_HOURS` (shown at checkout for pickup),
+  `DEPOSIT_PERCENT=50`, `REPAIR_WINDOW_DAYS=7`, `STUDIO_TIMEZONE=Africa/Lagos`,
+  `DEFAULT_CURRENCY=NGN`, `MIN_LEAD_TIME_DAYS=14`.
 
 ### Signing in locally without Resend
 
 If `AUTH_RESEND_KEY` is empty (development only), magic-link emails aren't sent. Instead the
 sign-in link is printed in the `pnpm dev` terminal; open it in your browser to sign in. Production
 requires a real Resend key.
+
+### Payments (Paystack)
+
+Ready-to-wear checkout and custom-order deposits and balances go through Paystack in NGN.
+
+- **Local dev without Paystack:** leave `PAYSTACK_SECRET_KEY` empty and payments use a built-in
+  dev gateway at `/dev/paystack`, with "Simulate successful payment" and "Cancel payment"
+  buttons. Nothing is charged. The dev gateway is disabled in production and whenever a key is set.
+- **With Paystack test keys:** set `PAYSTACK_SECRET_KEY=sk_test_…` and
+  `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY=pk_test_…`. In the Paystack dashboard (Settings → API Keys &
+  Webhooks) set the webhook URL to `https://<your-domain>/api/webhooks/paystack`. Customers return
+  to `/api/payments/callback`, built from `NEXT_PUBLIC_SITE_URL`.
+- **How it's made safe:** the webhook checks the `x-paystack-signature` HMAC and then re-verifies
+  the transaction with Paystack's Verify API before changing anything. Applying a payment is
+  idempotent per reference, so the callback and the webhook can both arrive safely.
+- **1-of-1 holds:** starting checkout holds the piece for 15 minutes (a pending order). Stock only
+  goes down when the payment succeeds. Expired holds are released whenever anyone starts a
+  checkout, and by a daily cron (`/api/cron/release-reservations`, scheduled in `vercel.json`,
+  authorised with `Authorization: Bearer $CRON_SECRET`; the Vercel Hobby plan allows daily crons
+  only).
 
 ### Image uploads
 
@@ -128,7 +144,9 @@ warning.
 First Playwright run: `pnpm exec playwright install chromium`. To use a Chromium you already have,
 set `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` instead. The E2E tests expect the seed data
 (`pnpm db:seed`) and sign in through the dev magic-link fallback, so leave `AUTH_RESEND_KEY` empty
-for local E2E runs.
+for local E2E runs. Payments run through the dev gateway (the E2E server clears
+`PAYSTACK_SECRET_KEY`). Before each local run, products left over from earlier runs (slugs starting
+`e2e-`) are unpublished so the shop's first page stays predictable.
 
 ## Project structure
 
@@ -144,12 +162,12 @@ src/
     (custom)/custom/     # /custom, gallery, request, request/success, book (v1.1)
     (account)/account/   # auth-guarded: wardrobe, wardrobe/[orderId], measurements, profile
     admin/               # admin-guarded (404 for non-admins): orders, clients, products, …
-    api/                 # auth/[...nextauth], uploads, webhooks/paystack, cron/reminders (stubs)
+    api/                 # auth, uploads, payments/callback, webhooks/paystack, cron/*
     sign-in/             # minimal magic-link / Google sign-in
     not-found.tsx
   components/
     ui/                  # shadcn/ui primitives (button, input, card, badge)
-    shop/ custom/ account/ admin/   # feature components (to come)
+    shop/ custom/ account/ admin/   # feature components
   lib/
     env.ts, env.schema.ts   # Zod-validated environment
     prisma.ts               # Prisma client singleton
@@ -159,17 +177,21 @@ src/
     inventory.ts            # deriveInventoryStatus (US-A1, D-2)
     custom-order/status.ts  # ALLOWED_TRANSITIONS, canTransition (gates), statusToProgress
     route-access.ts         # route protection rules + safe callbackUrl
-    payments/ validators/   # (to come)
+    payments/               # Paystack client, webhook signature, payment references
+    validators/             # Zod schemas shared by forms and Server Actions
   server/
     auth/guards.ts       # requireUser(), requireAdmin()
-    actions/ loaders/ custom/   # (to come)
-  emails/                # React Email templates (to come)
+    actions/             # Server Actions (customer and admin/)
+    data/                # plain Prisma queries and mutations (integration-tested)
+    loaders/             # cached reads for pages
+    payments/            # provider selection, payment processing, payment emails
+  emails/                # email templates
   generated/prisma/      # generated Prisma client (git-ignored)
   types/next-auth.d.ts   # session.user.id / role augmentation
   proxy.ts               # route protection (Next.js 16's name for middleware.ts)
 tests/
   unit/                  # Jest: pure functions and components
-  integration/           # Jest against a test Postgres (to come)
+  integration/           # Jest against a test Postgres
   e2e/                   # Playwright
 ```
 

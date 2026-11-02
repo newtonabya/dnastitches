@@ -35,8 +35,11 @@ test.describe("US-A2 product detail", () => {
     await page.goto(`/shop/${SEED.available.slug}`);
     const bust = page.getByTestId("spec-bust");
     await expect(bust).toHaveText("88.0 cm");
-    await page.getByRole("button", { name: "in", exact: true }).click();
-    await expect(bust).toHaveText("34.6 in");
+    // Retry the click: on a busy dev server it can land before the toggle has hydrated.
+    await expect(async () => {
+      await page.getByRole("button", { name: "in", exact: true }).click();
+      await expect(bust).toHaveText("34.6 in", { timeout: 1_000 });
+    }).toPass();
 
     await page.goto(`/shop/${SEED.lowStock.slug}`);
     await expect(page.getByRole("button", { name: "in", exact: true })).toHaveAttribute(

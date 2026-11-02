@@ -72,8 +72,8 @@ test.describe("Admin pipeline (US-C1, US-C4 admin side)", () => {
         .getByRole("article", { name: new RegExp(`^${reference}:`) }),
     ).toBeVisible();
 
-    // Detail page.
-    await card.getByRole("link", { name: reference }).click();
+    // Detail page (by URL: on narrow screens other cards can overlap the link).
+    await page.goto((await card.getByRole("link", { name: reference }).getAttribute("href"))!);
     await expect(page.getByRole("heading", { level: 1, name: reference })).toBeVisible();
     await expect(page.getByText("Customer asked to book a measurement appointment")).toBeVisible();
     await expectNoA11yViolations(page);
