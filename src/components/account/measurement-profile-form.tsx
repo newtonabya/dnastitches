@@ -15,9 +15,12 @@ export function MeasurementProfileForm({
   profileId,
   defaults,
   submitLabel,
+  hiddenFields = {},
 }: {
   action: Action;
   profileId?: string;
+  /** Extra hidden inputs, e.g. the client's userId when an admin records measurements. */
+  hiddenFields?: Record<string, string>;
   defaults?: MeasurementDefaults;
   submitLabel: string;
 }) {
@@ -27,6 +30,9 @@ export function MeasurementProfileForm({
   return (
     <form ref={formRef} onSubmit={onSubmit} noValidate className="flex flex-col gap-5">
       {profileId ? <input type="hidden" name="profileId" value={profileId} /> : null}
+      {Object.entries(hiddenFields).map(([name, value]) => (
+        <input key={name} type="hidden" name={name} value={value} />
+      ))}
       <MeasurementFields defaults={defaults} errors={fieldErrors} />
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" name="makeDefault" className="size-4" />

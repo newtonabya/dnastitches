@@ -6,10 +6,12 @@ A dual-purpose fashion platform: a curated shop for 1-of-1 ready-to-wear pieces 
 custom tailoring journey, run from an admin CRM. **[`PRD.md`](./PRD.md) is the single source of
 truth** for product behaviour, data model and architecture.
 
-**Status:** Phase 3, building the MVP stories. Done so far: sign-in and profile (US-E1), shop
-gallery (US-A1), product detail (US-A2), notify-me (US-D2), and the custom journey: sold-out →
-custom request (US-A3), the multi-step request form (US-B1), the portfolio gallery (US-B2) and
-measurement profiles (US-B3). Admin, payments and My Wardrobe are still placeholders.
+**Status:** Phase 3, building the MVP stories. Done so far:
+
+- **Customer side:** sign-in and profile (US-E1); the shop gallery, product detail and notify-me (US-A1, A2, D2); the custom journey (US-A3, B1, B2, B3).
+- **Admin side:** the order pipeline and order detail (US-C1), client profiles (US-C2), and quotes and offline payments (admin side of US-C4).
+
+Still to come: catalog management (US-C3), Paystack payments, My Wardrobe and repairs.
 
 ## Stack
 
@@ -89,6 +91,9 @@ Create a Blob store in Vercel (Storage → Blob) and copy its read-write token i
 Admins are never created through the UI (US-E1). Put your email in `ADMIN_EMAILS`, then either run
 `pnpm db:seed` or simply sign in: the role is granted on sign-in. Non-admins get a 404 on
 `/admin/*` (D-4).
+
+`pnpm test:e2e` starts its own dev server with `ADMIN_EMAILS` set to dedicated `e2e-admin-…`
+accounts, so your own admin email isn't used by the tests.
 
 ### Delivery zones (launch blocker)
 

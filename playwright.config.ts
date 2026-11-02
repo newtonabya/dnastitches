@@ -5,6 +5,17 @@ import { defineConfig, devices } from "@playwright/test";
 const PORT = Number(process.env.PORT ?? 3000);
 /** Dev-only magic links are written here so the sign-in E2E can follow them (src/lib/auth-dev-email.ts). */
 export const MAGIC_LINK_FILE = path.resolve(".playwright/magic-links.jsonl");
+/**
+ * Admin accounts for E2E: one per test slot and browser project, so parallel tests
+ * never share (and invalidate) each other's single-use magic links. Granted ADMIN by
+ * the E2E dev server (this overrides ADMIN_EMAILS from .env for that server only).
+ */
+export const E2E_PROJECTS = ["chromium", "mobile"] as const;
+export const e2eAdminEmail = (project: string, slot: number) =>
+  `e2e-admin-${project}-${slot}@example.com`;
+const E2E_ADMIN_EMAILS = E2E_PROJECTS.flatMap((p) =>
+  [1, 2, 3, 4].map((slot) => e2eAdminEmail(p, slot)),
+).join(",");
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://localhost:${PORT}`;
 
 /**
@@ -36,6 +47,10 @@ export default defineConfig({
         url: baseURL,
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,
-        env: { E2E_MAGIC_LINK_FILE: MAGIC_LINK_FILE, AUTH_RESEND_KEY: "" },
+        env: {
+          E2E_MAGIC_LINK_FILE: MAGIC_LINK_FILE,
+          AUTH_RESEND_KEY: "",
+          ADMIN_EMAILS: E2E_ADMIN_EMAILS,
+        },
       },
 });
