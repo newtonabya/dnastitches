@@ -84,5 +84,8 @@ jobs:
       - name: Unit & component tests
         run: pnpm test --coverage
 
+      - name: Integration tests (Server Actions and data layer against Postgres)
+        run: pnpm test:integration
+
       - name: Build
         run: pnpm build

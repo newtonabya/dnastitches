@@ -6,8 +6,9 @@ A dual-purpose fashion platform: a curated shop for 1-of-1 ready-to-wear pieces 
 custom tailoring journey, run from an admin CRM. **[`PRD.md`](./PRD.md) is the single source of
 truth** for product behaviour, data model and architecture.
 
-**Status:** Phase 2, environment setup. The scaffold is wired end to end (database, auth, tooling,
-CI). Feature screens are placeholders until their user stories are built.
+**Status:** Phase 3, building the MVP stories. Done so far: sign-in and profile (US-E1), shop
+gallery (US-A1), product detail (US-A2) and notify-me (US-D2). Other screens are still
+placeholders.
 
 ## Stack
 
@@ -70,6 +71,12 @@ missing or malformed variable stops `next dev` / `next build` with a clear messa
   `CRON_SECRET` (v1.1), `DEPOSIT_PERCENT=50`, `REPAIR_WINDOW_DAYS=7`,
   `STUDIO_TIMEZONE=Africa/Lagos`, `DEFAULT_CURRENCY=NGN`, `MIN_LEAD_TIME_DAYS=14`.
 
+### Signing in locally without Resend
+
+If `AUTH_RESEND_KEY` is empty (development only), magic-link emails aren't sent. Instead the
+sign-in link is printed in the `pnpm dev` terminal; open it in your browser to sign in. Production
+requires a real Resend key.
+
 ### Admin access
 
 Admins are never created through the UI (US-E1). Put your email in `ADMIN_EMAILS`, then either run
@@ -90,6 +97,7 @@ be built (D-12). Replace them with real zones and fees in `/admin/settings` befo
 | `pnpm lint`                      | ESLint (Next.js core-web-vitals + TypeScript + Prettier-compat)                          |
 | `pnpm typecheck`                 | Generate route types (`next typegen`) and run `tsc --noEmit`                             |
 | `pnpm test`                      | Jest unit and component tests (`--coverage` enforces ≥ 90% lines on `src/lib/`)          |
+| `pnpm test:integration`          | Jest integration tests: Server Actions and data layer against `DATABASE_URL` (migrated)  |
 | `pnpm test:e2e`                  | Playwright E2E (starts `pnpm dev`; set `PLAYWRIGHT_BASE_URL` to test a deployed preview) |
 | `pnpm format` / `format:check`   | Prettier write / check                                                                   |
 | `pnpm db:migrate`                | `prisma migrate dev`: create or apply migrations locally                                 |
@@ -99,7 +107,9 @@ be built (D-12). Replace them with real zones and fees in `/admin/settings` befo
 | `pnpm db:generate` / `db:studio` | Regenerate the Prisma client / open Prisma Studio                                        |
 
 First Playwright run: `pnpm exec playwright install chromium`. To use a Chromium you already have,
-set `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` instead.
+set `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` instead. The E2E tests expect the seed data
+(`pnpm db:seed`) and sign in through the dev magic-link fallback, so leave `AUTH_RESEND_KEY` empty
+for local E2E runs.
 
 ## Project structure
 

@@ -1,6 +1,10 @@
+import path from "node:path";
+
 import { defineConfig, devices } from "@playwright/test";
 
 const PORT = Number(process.env.PORT ?? 3000);
+/** Dev-only magic links are written here so the sign-in E2E can follow them (src/lib/auth-dev-email.ts). */
+export const MAGIC_LINK_FILE = path.resolve(".playwright/magic-links.jsonl");
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://localhost:${PORT}`;
 
 /**
@@ -32,5 +36,6 @@ export default defineConfig({
         url: baseURL,
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,
+        env: { E2E_MAGIC_LINK_FILE: MAGIC_LINK_FILE, AUTH_RESEND_KEY: "" },
       },
 });

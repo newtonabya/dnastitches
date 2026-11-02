@@ -5,6 +5,7 @@ import Google from "next-auth/providers/google";
 import Resend from "next-auth/providers/resend";
 
 import { authConfig } from "@/lib/auth.config";
+import { devSendVerificationRequest } from "@/lib/auth-dev-email";
 import { env } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 
@@ -12,6 +13,8 @@ const providers: Provider[] = [
   Resend({
     apiKey: env.AUTH_RESEND_KEY,
     from: env.EMAIL_FROM ?? "DNA Stitches <onboarding@resend.dev>",
+    // Without a Resend key (development only; production requires it), log the link instead.
+    ...(env.AUTH_RESEND_KEY ? {} : { sendVerificationRequest: devSendVerificationRequest }),
   }),
 ];
 
