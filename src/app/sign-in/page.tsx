@@ -12,6 +12,15 @@ export const metadata: Metadata = { title: "Sign in" };
 
 const DEFAULT_CALLBACK = "/account/wardrobe";
 
+/** Friendly messages for our own and Auth.js error codes (https://authjs.dev/reference/core/errors). */
+const SIGN_IN_ERRORS: Record<string, string> = {
+  InvalidEmail: "Please enter a valid email address.",
+  Verification: "That sign-in link has expired or was already used. Request a new one below.",
+  OAuthAccountNotLinked:
+    "This email is already linked to another sign-in method. Use the email link instead.",
+  AccessDenied: "Access denied.",
+};
+
 /**
  * Minimal sign-in screen so Auth.js wiring can be verified end to end.
  * Full UX (US-E1) is implemented in its own story.
@@ -42,7 +51,6 @@ async function SignInForms({ searchParams }: Pick<PageProps<"/sign-in">, "search
   const params = await searchParams;
   const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
   const callbackUrl = safeCallbackUrl(first(params.callbackUrl), DEFAULT_CALLBACK);
-  const checkEmail = first(params["check-email"]) === "1";
   const error = first(params.error);
 
   async function emailSignIn(formData: FormData) {
@@ -62,17 +70,11 @@ async function SignInForms({ searchParams }: Pick<PageProps<"/sign-in">, "search
     await signIn("google", { redirectTo });
   }
 
-  if (checkEmail) {
-    return <p role="status">Check your email for a sign-in link.</p>;
-  }
-
   return (
     <div className="flex flex-col gap-6">
       {error ? (
         <p role="alert" className="text-sm text-destructive">
-          {error === "InvalidEmail"
-            ? "Please enter a valid email address."
-            : "Sign-in failed. Please try again."}
+          {SIGN_IN_ERRORS[error] ?? "Sign-in failed. Please try again."}
         </p>
       ) : null}
       <form action={emailSignIn} className="flex flex-col gap-3">

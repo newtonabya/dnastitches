@@ -11,7 +11,7 @@ export const authConfig = {
   trustHost: true,
   pages: {
     signIn: "/sign-in",
-    verifyRequest: "/sign-in?check-email=1",
+    verifyRequest: "/sign-in/check-email",
     error: "/sign-in",
   },
   // JWT sessions let the proxy authorise requests without a DB round trip.
