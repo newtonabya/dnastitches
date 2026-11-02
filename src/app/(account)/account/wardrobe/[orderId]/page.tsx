@@ -6,12 +6,14 @@ import { Suspense } from "react";
 import { OrderProgress } from "@/components/account/order-progress";
 import { PayForm } from "@/components/account/pay-form";
 import { RepairStatusItem } from "@/components/account/repair-status";
+import { LocalTime } from "@/components/scheduling/local-time";
 import { Button } from "@/components/ui/button";
 import { STATUS_LABELS } from "@/lib/custom-order/status";
 import { env } from "@/lib/env";
 import { formatNGN } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 import { ACTIVE_REPAIR_STATUSES, isWithinDefectWindow } from "@/lib/repairs";
+import { APPOINTMENT_STATUS_LABELS, APPOINTMENT_TYPE_LABELS } from "@/lib/scheduling/appointments";
 import { startCustomPaymentAction } from "@/server/actions/checkout";
 import { requireUser } from "@/server/auth/guards";
 import { getWardrobeOrder } from "@/server/data/wardrobe";
@@ -159,6 +161,38 @@ async function Order({
         <p className="text-sm text-muted-foreground">
           We&apos;ll send your quote after your consultation and measurements.
         </p>
+      ) : null}
+
+      {order.status !== "COMPLETED" && order.status !== "CANCELLED" ? (
+        <section aria-labelledby="appointments-heading" className="flex flex-col gap-3">
+          <h2 id="appointments-heading" className="text-lg font-semibold">
+            Appointments
+          </h2>
+          {order.appointments.length > 0 ? (
+            <ul className="flex flex-col gap-2 text-sm">
+              {order.appointments.map((a) => (
+                <li key={a.id}>
+                  <span className="font-medium">{APPOINTMENT_TYPE_LABELS[a.type]}</span> ·{" "}
+                  <LocalTime
+                    iso={a.startsAt.toISOString()}
+                    endIso={a.endsAt.toISOString()}
+                    timeZone={env.STUDIO_TIMEZONE}
+                  />{" "}
+                  · {APPOINTMENT_STATUS_LABELS[a.status]}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          <p className="text-sm">
+            <Link href={`/custom/book?order=${order.id}`} className="underline">
+              Book a consultation
+            </Link>{" "}
+            ·{" "}
+            <Link href="/account/appointments" className="underline">
+              All my appointments
+            </Link>
+          </p>
+        </section>
       ) : null}
 
       {order.status === "COMPLETED" ? (

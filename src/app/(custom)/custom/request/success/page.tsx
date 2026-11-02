@@ -59,11 +59,14 @@ async function Confirmation({
         .
       </p>
       <p className="text-sm text-muted-foreground">
-        We&apos;ve emailed you a copy. We&apos;ll review &ldquo;{order.title}&rdquo; and contact you
-        to arrange a consultation.
+        We&apos;ve emailed you a copy. We&apos;ll review &ldquo;{order.title}&rdquo;. To talk it
+        through, book a consultation in the studio or by video.
       </p>
       <div className="flex flex-wrap justify-center gap-3">
         <Button asChild>
+          <Link href={`/custom/book?order=${order.id}`}>Book a consultation</Link>
+        </Button>
+        <Button asChild variant="outline">
           <Link href="/account/wardrobe">Track it in My Wardrobe</Link>
         </Button>
         <Button asChild variant="outline">

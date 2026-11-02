@@ -5,6 +5,7 @@ import { requireUser } from "@/server/auth/guards";
 
 const ACCOUNT_NAV = [
   { href: "/account/wardrobe", label: "My Wardrobe" },
+  { href: "/account/appointments", label: "Appointments" },
   { href: "/account/measurements", label: "Measurements" },
   { href: "/account/profile", label: "Profile" },
 ] as const;
