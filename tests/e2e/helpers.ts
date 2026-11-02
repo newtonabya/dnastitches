@@ -1,9 +1,9 @@
 import { readFile } from "node:fs/promises";
 
 import AxeBuilder from "@axe-core/playwright";
-import { expect, type Page } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
-import { MAGIC_LINK_FILE } from "../../playwright.config";
+import { MAGIC_LINK_FILE, e2eAdminEmail } from "../../playwright.config";
 
 /** Seeded fixtures (prisma/seed.ts). */
 export const SEED = {
@@ -68,4 +68,45 @@ export async function signInWithMagicLink(page: Page, email: string) {
     timeout: 20_000,
   });
   await page.goto(await magicLinkFor(email));
+}
+
+/** Sign in as this test's admin account (slots are unique per spec file), landing on `to`. */
+export async function signInAsAdminSlot(page: Page, slot: number, to: string) {
+  await page.goto(`/sign-in?callbackUrl=${encodeURIComponent(to)}`);
+  await signInWithMagicLink(page, e2eAdminEmail(test.info().project.name, slot));
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible({ timeout: 20_000 });
+}
+
+/** As an admin: create a fresh published 1-of-1 piece (so tests never sell out seed products). */
+export async function createPiece(page: Page, name: string): Promise<string> {
+  await page.goto("/admin/products/new");
+  const form = page.getByRole("form", { name: "New product" });
+  await form.getByLabel("Name", { exact: true }).fill(name);
+  await form.getByLabel("Price (₦)").fill("120,000");
+  await form.getByLabel("Quantity in stock").fill("1");
+  await form.getByLabel("Description").fill("A piece created by an E2E test.");
+  await form.getByLabel("Fabric composition").fill("100% cotton");
+  await form.getByLabel("Care instructions").fill("Dry clean only.");
+  await form.getByLabel("Bust").fill("90");
+  await form.getByLabel("Published (visible in the shop)").check();
+  await form.getByRole("button", { name: "Create product" }).click();
+  await expect(page.getByText("Product created and published.")).toBeVisible();
+  return (await page.getByText(/^\/shop\//).textContent())!.replace("/shop/", "").trim();
+}
+
+/** On the dev payment gateway (/dev/paystack): approve the payment. */
+export async function payOnDevGateway(page: Page) {
+  await expect(page).toHaveURL(/\/dev\/paystack\?reference=dna-/, { timeout: 20_000 });
+  await expect(page.getByRole("heading", { name: "Dev payment gateway" })).toBeVisible();
+  await page.getByRole("button", { name: "Simulate successful payment" }).click();
+}
+
+/** As a signed-in customer on a product page: buy it with pickup through the dev gateway. */
+export async function buyWithPickup(page: Page) {
+  const checkout = page.getByRole("form", { name: "Checkout" });
+  await expect(checkout).toBeVisible({ timeout: 20_000 });
+  await checkout.getByRole("checkbox").check();
+  await checkout.getByRole("button", { name: /^Pay / }).click();
+  await payOnDevGateway(page);
+  await expect(page).toHaveURL(/\/checkout\/success/, { timeout: 20_000 });
 }

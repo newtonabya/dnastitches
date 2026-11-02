@@ -6,12 +6,12 @@ A dual-purpose fashion platform: a curated shop for 1-of-1 ready-to-wear pieces 
 custom tailoring journey, run from an admin CRM. **[`PRD.md`](./PRD.md) is the single source of
 truth** for product behaviour, data model and architecture.
 
-**Status:** Phase 3, building the MVP stories. Done so far:
+**Status:** Phase 3 complete. Every MVP story is built:
 
-- **Customer side:** sign-in and profile (US-E1); the shop gallery, product detail and notify-me (US-A1, A2, D2); the custom journey (US-A3, B1, B2, B3); Paystack checkout for ready-to-wear (US-A4); online deposits and balances (US-C4); My Wardrobe (US-D1).
-- **Admin side:** the order pipeline and order detail (US-C1), client profiles (US-C2), catalog management (US-C3), the notify-me CSV export (US-D2), delivery zones (D-12), quotes and offline payments (US-C4), and shop orders (mark as picked up / delivered).
+- **Customer side:** sign-in and profile (US-E1); the shop gallery, product detail and notify-me (US-A1, A2, D2); the custom journey (US-A3, B1, B2, B3); Paystack checkout for ready-to-wear (US-A4); online deposits and balances (US-C4); My Wardrobe (US-D1); defect repair requests (US-D3).
+- **Admin side:** the order pipeline and order detail (US-C1), client profiles (US-C2), catalog management (US-C3), the notify-me CSV export (US-D2), delivery zones (D-12), quotes and offline payments (US-C4), shop orders (mark as picked up / delivered), and repair requests (US-D3).
 
-Still to come: defect repairs (US-D3).
+The v1.1 stories (consultation scheduler, reminders, reviews) are next on the roadmap in `PRD.md`.
 
 ## Stack
 
@@ -101,9 +101,18 @@ Ready-to-wear checkout and custom-order deposits and balances go through Paystac
   authorised with `Authorization: Bearer $CRON_SECRET`; the Vercel Hobby plan allows daily crons
   only).
 
+### Defect repairs
+
+All sales are final (D-11). Instead of refunds, a customer can report a manufacturing defect from
+My Wardrobe for `REPAIR_WINDOW_DAYS` (default 7) after handover: when a shop order is marked picked
+up or delivered, or a custom order is completed. The owner handles reports at `/admin/repairs`
+(Received → In repair → Repaired, or Not covered with a reason the customer sees). The customer is
+emailed at every step. Repairs never create a payment or refund. The policy is published at
+`/policies/terms`.
+
 ### Image uploads
 
-Custom-request reference images upload straight to Vercel Blob, using a token issued by
+Custom-request reference images and defect photos upload straight to Vercel Blob, using a token issued by
 `/api/uploads`. Without `BLOB_READ_WRITE_TOKEN` the form still works but the uploader is disabled.
 Create a Blob store in Vercel (Storage → Blob) and copy its read-write token into `.env`.
 
