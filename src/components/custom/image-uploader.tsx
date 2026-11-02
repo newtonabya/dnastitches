@@ -29,22 +29,31 @@ const blobUpload: Uploader = (pathname, file) =>
 export function ImageUploader({
   urls,
   onChange,
-  userId,
+  pathPrefix,
   uploadsEnabled,
   error,
   uploader = blobUpload,
+  label = "Reference images",
+  max = MAX_REFERENCE_IMAGES,
+  optional = true,
 }: {
   urls: string[];
   onChange: (urls: string[]) => void;
-  userId: string;
+  /** Blob path prefix, e.g. customRequestUploadPrefix(userId) or "catalog/products". */
+  pathPrefix: string;
   uploadsEnabled: boolean;
   error?: string;
   uploader?: Uploader;
+  /** Visible label for the file input. */
+  label?: string;
+  /** Maximum images in this list. */
+  max?: number;
+  optional?: boolean;
 }) {
   const id = useId();
   const [errors, setErrors] = useState<string[]>([]);
   const [uploading, setUploading] = useState(0);
-  const remaining = MAX_REFERENCE_IMAGES - urls.length;
+  const remaining = max - urls.length;
 
   async function onFiles(event: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? []);
@@ -55,7 +64,7 @@ export function ImageUploader({
       const problem = validateImageFile(file);
       if (problem) problems.push(problem);
       else if (accepted.length >= remaining)
-        problems.push(`${file.name}: you can add up to ${MAX_REFERENCE_IMAGES} images.`);
+        problems.push(`${file.name}: you can add up to ${max} images.`);
       else accepted.push(file);
     }
     setErrors(problems);
@@ -63,7 +72,7 @@ export function ImageUploader({
 
     setUploading((n) => n + accepted.length);
     const results = await Promise.allSettled(
-      accepted.map((file) => uploader(uploadPathname(userId, file.name), file)),
+      accepted.map((file) => uploader(uploadPathname(pathPrefix, file.name), file)),
     );
     setUploading((n) => n - accepted.length);
     const uploaded = results.flatMap((r) => (r.status === "fulfilled" ? [r.value.url] : []));
@@ -71,7 +80,7 @@ export function ImageUploader({
       r.status === "rejected" ? [`${accepted[i]!.name}: upload failed. Please try again.`] : [],
     );
     if (failed.length) setErrors((prev) => [...prev, ...failed]);
-    if (uploaded.length) onChange([...urls, ...uploaded].slice(0, MAX_REFERENCE_IMAGES));
+    if (uploaded.length) onChange([...urls, ...uploaded].slice(0, max));
   }
 
   const allErrors = [...errors, ...(error ? [error] : [])];
@@ -110,7 +119,7 @@ export function ImageUploader({
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor={`${id}-files`} className="text-sm font-medium">
-          Reference images ({urls.length}/{MAX_REFERENCE_IMAGES}) — optional
+          {label} ({urls.length}/{max}){optional ? " — optional" : ""}
         </label>
         <input
           id={`${id}-files`}

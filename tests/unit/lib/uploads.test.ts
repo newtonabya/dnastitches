@@ -1,5 +1,7 @@
 import {
+  CATALOG_UPLOAD_PREFIX,
   MAX_REFERENCE_IMAGES,
+  customRequestUploadPrefix,
   MAX_UPLOAD_BYTES,
   isBlobUrl,
   uploadPathname,
@@ -50,8 +52,10 @@ describe("upload policy (US-B1 AC2)", () => {
     expect(isBlobUrl("not a url")).toBe(false);
   });
 
-  it("uploadPathname namespaces by user and sanitises", () => {
-    expect(uploadPathname("u1", "My Dress (1).JPG")).toBe("custom-requests/u1/my-dress-1-.jpg");
-    expect(uploadPathname("u1", "***")).toBe("custom-requests/u1/image");
+  it("uploadPathname namespaces by prefix and sanitises", () => {
+    expect(uploadPathname(customRequestUploadPrefix("u1"), "My Dress (1).JPG")).toBe(
+      "custom-requests/u1/my-dress-1-.jpg",
+    );
+    expect(uploadPathname(CATALOG_UPLOAD_PREFIX, "***")).toBe("catalog/image");
   });
 });
