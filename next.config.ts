@@ -11,6 +11,14 @@ if (!process.argv.includes("typegen")) {
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
+  images: {
+    remotePatterns: [
+      // Vercel Blob uploads (product, swatch and portfolio images).
+      { protocol: "https", hostname: "*.public.blob.vercel-storage.com" },
+      // Seed placeholder images (prisma/seed.ts).
+      { protocol: "https", hostname: "placehold.co" },
+    ],
+  },
   partialPrefetching: true,
   turbopack: {
     rules: {
