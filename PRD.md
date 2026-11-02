@@ -499,7 +499,7 @@ Gates (enforced server-side):
 
 **Definition of Done**
 - [ ] Auth.js v5 config in `src/lib/auth.ts` with Prisma adapter; `role` exposed on the session via callbacks and typed via module augmentation.
-- [ ] Middleware protects `/account/*`, `/admin/*`, and `/custom/request`.
+- [ ] Middleware (`src/proxy.ts`; Next.js 16 renamed `middleware.ts` to `proxy.ts`) protects `/account/*`, `/admin/*`, and `/custom/request`.
 - [ ] E2E test: sign in → land on callback URL.
 
 ---
@@ -735,7 +735,7 @@ dna-stitches/
 │   │   ├── loaders/                     # server-only read functions
 │   │   └── custom/prefill.ts
 │   ├── emails/                          # React Email templates
-│   └── middleware.ts
+│   └── proxy.ts                         # route protection (Next.js 16 renamed middleware.ts → proxy.ts)
 ├── public/
 ├── tests/
 │   ├── unit/
