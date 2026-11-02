@@ -31,8 +31,8 @@ async function submitRequest(browser: Browser, title: string): Promise<string> {
   return (await submitRequestAs(browser, title)).reference;
 }
 
-/** Each test passes its own slot (1–4) so parallel tests use different admin accounts. */
-async function signInAsAdmin(page: Page, slot: number) {
+/** Each test passes its own slot (1–8, unique across spec files) so parallel tests use different admin accounts. */
+export async function signInAsAdmin(page: Page, slot: number) {
   await page.goto("/sign-in?callbackUrl=%2Fadmin%2Forders");
   await signInWithMagicLink(page, e2eAdminEmail(test.info().project.name, slot));
   // Generous timeout: the dev server compiles the admin routes on first use.
