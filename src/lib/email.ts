@@ -9,11 +9,19 @@ import { env } from "@/lib/env";
  * outage can't fail the user's action.
  */
 
+export interface EmailAttachment {
+  filename: string;
+  /** UTF-8 text content (e.g. an .ics calendar file). */
+  content: string;
+  contentType: string;
+}
+
 export interface EmailMessage {
   to: string | string[];
   subject: string;
   text: string;
   html?: string;
+  attachments?: EmailAttachment[];
 }
 
 export interface EmailSender {
@@ -21,19 +29,39 @@ export interface EmailSender {
 }
 
 const resendSender = (apiKey: string, from: string): EmailSender => ({
-  async send({ to, subject, text, html }) {
+  async send({ to, subject, text, html, attachments }) {
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from, to: [to].flat(), subject, text, html }),
+      body: JSON.stringify({
+        from,
+        to: [to].flat(),
+        subject,
+        text,
+        html,
+        ...(attachments?.length
+          ? {
+              attachments: attachments.map((a) => ({
+                filename: a.filename,
+                content: Buffer.from(a.content, "utf8").toString("base64"),
+                content_type: a.contentType,
+              })),
+            }
+          : {}),
+      }),
     });
     if (!response.ok) throw new Error(`Resend responded ${response.status}`);
   },
 });
 
 const consoleSender: EmailSender = {
-  async send({ to, subject, text }) {
-    console.info(`\n[email] To: ${[to].flat().join(", ")}\nSubject: ${subject}\n\n${text}\n`);
+  async send({ to, subject, text, attachments }) {
+    const files = attachments?.length
+      ? `\nAttachments: ${attachments.map((a) => a.filename).join(", ")}`
+      : "";
+    console.info(
+      `\n[email] To: ${[to].flat().join(", ")}\nSubject: ${subject}${files}\n\n${text}\n`,
+    );
   },
 };
 

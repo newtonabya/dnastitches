@@ -347,6 +347,21 @@ async function seedDeliveryZones() {
   );
 }
 
+/**
+ * Starter booking hours (US-F1): Tuesday–Saturday, 10:00–16:00 studio time. Only
+ * created when no hours exist, so the owner's own hours (set in /admin/settings) are kept.
+ */
+async function seedAvailability() {
+  if ((await prisma.availabilityRule.count()) > 0) {
+    console.log("✓ booking hours already set — left unchanged");
+    return;
+  }
+  await prisma.availabilityRule.createMany({
+    data: [2, 3, 4, 5, 6].map((weekday) => ({ weekday, startMinute: 10 * 60, endMinute: 16 * 60 })),
+  });
+  console.log("✓ starter booking hours: Tue–Sat 10:00–16:00 (edit them in /admin/settings)");
+}
+
 async function seedAdmins() {
   const emails = (process.env.ADMIN_EMAILS ?? "")
     .split(",")
@@ -371,6 +386,7 @@ async function main() {
   await seedProducts();
   await seedPortfolio();
   await seedDeliveryZones();
+  await seedAvailability();
   await seedAdmins();
 }
 

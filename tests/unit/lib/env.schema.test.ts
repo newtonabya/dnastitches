@@ -33,6 +33,23 @@ describe("parseEnv", () => {
     });
   });
 
+  it("parses booking settings (US-F1)", () => {
+    expect(parseEnv(base)).toMatchObject({
+      CONSULTATION_MINUTES: 60,
+      APPOINTMENTS_AUTO_CONFIRM: false,
+    });
+    expect(
+      parseEnv({ ...base, CONSULTATION_MINUTES: "45", APPOINTMENTS_AUTO_CONFIRM: "true" }),
+    ).toMatchObject({ CONSULTATION_MINUTES: 45, APPOINTMENTS_AUTO_CONFIRM: true });
+    expect(parseEnv({ ...base, APPOINTMENTS_AUTO_CONFIRM: "" }).APPOINTMENTS_AUTO_CONFIRM).toBe(
+      false,
+    );
+    expect(() => parseEnv({ ...base, CONSULTATION_MINUTES: "5" })).toThrow(/CONSULTATION_MINUTES/);
+    expect(() => parseEnv({ ...base, APPOINTMENTS_AUTO_CONFIRM: "yes" })).toThrow(
+      /APPOINTMENTS_AUTO_CONFIRM/,
+    );
+  });
+
   it("requires DATABASE_URL and AUTH_SECRET everywhere", () => {
     expect(() => parseEnv({ AUTH_SECRET: "x" })).toThrow(EnvValidationError);
     expect(() => parseEnv({ DATABASE_URL: base.DATABASE_URL })).toThrow(/AUTH_SECRET/);
