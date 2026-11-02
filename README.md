@@ -180,6 +180,7 @@ warning.
 | -------------------------------- | ---------------------------------------------------------------------------------------- |
 | `pnpm dev`                       | Start the dev server                                                                     |
 | `pnpm build` / `pnpm start`      | Production build / serve it                                                              |
+| `pnpm vercel-build`              | What Vercel runs on deploy: `prisma migrate deploy`, then `next build`                   |
 | `pnpm lint`                      | ESLint (Next.js core-web-vitals + TypeScript + Prettier-compat)                          |
 | `pnpm typecheck`                 | Generate route types (`next typegen`) and run `tsc --noEmit`                             |
 | `pnpm test`                      | Jest unit and component tests (`--coverage` enforces ≥ 90% lines on `src/lib/`)          |
@@ -270,7 +271,21 @@ tests/
 
 ## CI
 
-`.github/workflows/ci.yml` runs on every PR and every push to `main`: install, lint, format check,
-typecheck, `prisma validate`, `prisma migrate deploy` plus seed against a Postgres 16 service, unit
-tests with coverage, and `next build` with dummy environment variables. E2E against Vercel
-previews comes later (PRD §11).
+`.github/workflows/ci.yml` runs on every PR and every push to `main`, as two jobs:
+
+- **Lint, typecheck, test, build:** install, lint, format check, typecheck, `prisma validate`,
+  `prisma migrate deploy` plus seed against a Postgres 16 service, unit tests with coverage,
+  integration tests, and `next build` with dummy environment variables.
+- **End-to-end (Playwright):** a fresh Postgres, migrations and seed, then every E2E test on
+  desktop and mobile Chrome with axe accessibility checks. It signs in through the dev magic-link
+  fallback and pays through the dev gateway, so nothing leaves the runner. When it fails, the
+  Playwright report is attached to the run.
+
+`.github/workflows/reminders.yml` calls the reminders endpoint every 15 minutes (see
+[Fitting and pickup reminders](#fitting-and-pickup-reminders)).
+
+## Deploying
+
+See [`docs/LAUNCH.md`](./docs/LAUNCH.md) for the full go-live checklist. On Vercel, the
+`vercel-build` script applies pending migrations to that environment's `DATABASE_URL` before
+building, so give **Preview** and **Production** separate databases (for example Neon branches).
