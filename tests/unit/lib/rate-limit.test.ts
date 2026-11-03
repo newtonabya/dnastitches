@@ -1,4 +1,9 @@
-import { createMemoryRateLimiter, getClientIp, notifyMeRateLimiter } from "@/lib/rate-limit";
+import {
+  allowSignInEmail,
+  createMemoryRateLimiter,
+  getClientIp,
+  notifyMeRateLimiter,
+} from "@/lib/rate-limit";
 
 describe("createMemoryRateLimiter", () => {
   it("allows `limit` requests per window per key, then blocks until reset", async () => {
@@ -43,5 +48,29 @@ describe("getClientIp", () => {
   it("falls back to x-real-ip, then 'unknown'", () => {
     expect(getClientIp(h({ "x-real-ip": "5.6.7.8" }))).toBe("5.6.7.8");
     expect(getClientIp(h({}))).toBe("unknown");
+  });
+});
+
+describe("allowSignInEmail (magic-link sign-in)", () => {
+  const limiter = (limit: number) =>
+    createMemoryRateLimiter({ limit, windowMs: 60_000, now: () => 0 });
+
+  it("limits sign-in emails per address, case-insensitively", async () => {
+    const byEmail = limiter(2);
+    const opts = { production: false, byEmail, byIp: limiter(100) };
+    expect(await allowSignInEmail("Ada@example.com", "1.1.1.1", opts)).toBe(true);
+    expect(await allowSignInEmail("ada@example.com ", "2.2.2.2", opts)).toBe(true);
+    expect(await allowSignInEmail("ADA@example.com", "3.3.3.3", opts)).toBe(false);
+    expect(await allowSignInEmail("bola@example.com", "1.1.1.1", opts)).toBe(true);
+  });
+
+  it("limits per IP in production only", async () => {
+    const dev = { production: false, byEmail: limiter(100), byIp: limiter(1) };
+    expect(await allowSignInEmail("a@example.com", "9.9.9.9", dev)).toBe(true);
+    expect(await allowSignInEmail("b@example.com", "9.9.9.9", dev)).toBe(true);
+    const prod = { production: true, byEmail: limiter(100), byIp: limiter(1) };
+    expect(await allowSignInEmail("a@example.com", "9.9.9.9", prod)).toBe(true);
+    expect(await allowSignInEmail("b@example.com", "9.9.9.9", prod)).toBe(false);
+    expect(await allowSignInEmail("c@example.com", "8.8.8.8", prod)).toBe(true);
   });
 });

@@ -1,8 +1,8 @@
 # DNA Stitches — Product Requirements Document (PRD)
 
-> **Status:** v1.2 — All open questions resolved (see §13)
+> **Status:** v1.3 — MVP (v1.0) and v1.1 built. Where the build differs from the original text, see D-14 to D-21 in §13.
 > **Owner:** Newton Abya
-> **Last updated:** 2026-11-01
+> **Last updated:** 2026-11-02
 > **Source of truth:** This file is the canonical spec for all implementation work (human or AI-assisted). If code and this document disagree, the document wins until it is amended via a reviewed commit.
 
 ---
@@ -199,10 +199,10 @@ enum NotificationRequestType {
 | **User** | `id`, `email` (unique), `name`, `phone?`, `role` (default `CUSTOMER`), `image?`, timestamps | Auth.js `Account`, `Session`, `VerificationToken` tables included via adapter. |
 | **Product** | `id`, `slug` (unique), `name`, `description`, `priceKobo` (Int), `currency` (default `NGN`), `inventoryStatus`, `quantity` (Int, default 1), `bustCm`, `waistCm`, `hipsCm`, `lengthCm` (Decimal), `sizeLabel?`, `fabricComposition`, `careInstructions`, `isPublished`, timestamps | `images ProductImage[]`, `fabricSwatch FabricSwatch?`. `inventoryStatus` is derived from `quantity` on write (see US-A1). |
 | **ProductImage** | `id`, `productId`, `url`, `alt`, `sortOrder` | |
-| **Order** | `id`, `userId`, `productId`, `subtotalKobo`, `deliveryFeeKobo` (0 for pickup), `totalKobo`, `status`, `fulfillmentMethod`, `addressId?`, `deliveryZoneId?`, `finalSaleAcknowledgedAt`, timestamps | One product per order in v1 (1-of-1 pieces). `addressId` required when `fulfillmentMethod = DELIVERY`. |
+| **Order** | `id`, `userId`, `productId`, `subtotalKobo`, `deliveryFeeKobo` (0 for pickup), `totalKobo`, `status`, `fulfillmentMethod`, `addressId?`, `deliveryZoneId?`, `finalSaleAcknowledgedAt`, `fulfilledAt?`, timestamps | One product per order in v1 (1-of-1 pieces). `addressId` required when `fulfillmentMethod = DELIVERY`. An unexpired `PENDING_PAYMENT` order holds the piece for 15 minutes (D-14). |
 | **Payment** | `id`, `userId`, `kind`, `channel`, `status`, `amountKobo`, `currency`, `orderId?`, `customOrderId?`, `paystackReference?` (unique), `paidAt?`, `recordedById?` (admin, for OFFLINE), `rawEvent Json?`, timestamps | Exactly one of `orderId`/`customOrderId` set. Every money movement is a `Payment` row. |
 | **Address** | `id`, `userId`, `recipientName`, `phone` (+234), `line1`, `line2?`, `city`, `state` (one of 36 states + FCT), `landmark?`, `isDefault` | Reused across RTW and custom orders. |
-| **RepairRequest** | `id`, `userId`, `orderId?`, `customOrderId?`, `description`, `photoUrls String[]`, `status` (`OPEN`\|`IN_REPAIR`\|`RESOLVED`\|`REJECTED`), `adminNotes?`, `resolvedAt?`, timestamps | Exactly one of `orderId`/`customOrderId` set. Only allowed within 7 days of handover (D-13). |
+| **RepairRequest** | `id`, `userId`, `orderId?`, `customOrderId?`, `description`, `photoUrls String[]`, `status` (`OPEN`\|`IN_REPAIR`\|`RESOLVED`\|`REJECTED`), `adminNotes?` (private), `rejectionReason?` (shown to the customer), `resolvedAt?`, timestamps | Exactly one of `orderId`/`customOrderId` set. Only allowed within 7 days of handover (D-13); one open request per piece (D-19). |
 | **DeliveryZone** | `id`, `name` (e.g. "Lagos Mainland"), `states String[]`, `feeKobo`, `etaDays`, `isActive` | Flat-rate delivery fee per zone, managed by admin. |
 | **FabricSwatch** | `id`, `name`, `colorHex`, `imageUrl`, `composition`, `isAvailable`, `sortOrder` | |
 | **PortfolioItem** | `id`, `title`, `description`, `imageUrl`, `tags String[]`, `isPublished`, `sourceProductId?` | `id` is the **referenceId** used to pre-fill custom requests (US-B2). |
@@ -212,8 +212,8 @@ enum NotificationRequestType {
 | **Appointment** | `id`, `userId`, `customOrderId?`, `type`, `mode` (`IN_STUDIO`\|`VIDEO`), `status`, `startsAt`, `endsAt`, `notes?` (from the customer), `adminNotes?` (private) | [v1.1] No two active (`REQUESTED`/`CONFIRMED`) appointments may overlap: one studio calendar. |
 | **AvailabilityRule** | `id`, `weekday` (0 = Sunday), `startMinute`, `endMinute`, `isActive` | [v1.1] Weekly booking hours in `STUDIO_TIMEZONE`; several per day allowed. |
 | **BlackoutDate** | `id`, `date` (studio-local, unique), `reason?` | [v1.1] No bookings that day; existing appointments are kept. |
-| **Reminder** | `id`, `appointmentId`, `channel` (`EMAIL`), `sendAt`, `sentAt?`, `error?` | [v1.1] Processed by a scheduled job. |
-| **Review** | `id`, `userId`, `productId?`, `customOrderId?`, `rating` (1–5), `body`, `isApproved`, `createdAt` | [v1.1] Exactly one of `productId`/`customOrderId` must be set. |
+| **Reminder** | `id`, `appointmentId`, `channel` (`EMAIL`), `offsetMinutes`, `sendAt`, `sentAt?`, `skippedAt?`, `attempts`, `lockedUntil?`, `error?` | [v1.1] Processed by a scheduled job. Unique on (`appointmentId`, `offsetMinutes`); claimed before sending so it goes out at most once. |
+| **Review** | `id`, `userId`, `productId?`, `customOrderId?`, `rating` (1–5), `body`, `displayName`, `isApproved`, `moderatedAt?`, `createdAt` | [v1.1] Exactly one of `productId`/`customOrderId` must be set. Pending until moderated; hidden = moderated and not approved (D-20). |
 | **NotificationRequest** | `id`, `email`, `userId?`, `productId?`, `type`, `createdAt`, `notifiedAt?` | Unique on (`email`, `productId`, `type`). |
 
 ### 5.3 Data Rules
@@ -294,7 +294,7 @@ enum NotificationRequestType {
 8. Admin can mark a paid order `FULFILLED` (picked up or delivered). `fulfilledAt` is stored and starts the 7-day defect window (US-D3).
 
 **Definition of Done**
-- [ ] Stock is reserved inside a Prisma `$transaction` with a conditional update (`WHERE quantity > 0`), so there is no read-then-write race.
+- [ ] Stock is reserved inside a Prisma `$transaction` with a conditional update (`WHERE quantity > 0`), so there is no read-then-write race. *(As built: a row lock plus a 15-minute pending-order hold; see D-14.)*
 - [ ] Payment provider interface in `src/lib/payments/` with a Paystack implementation: initialise transaction, verify transaction, and webhook handling.
 - [ ] Webhook handler `src/app/api/webhooks/paystack/route.ts` verifies the `x-paystack-signature` HMAC-SHA512 against the secret key, re-verifies via the Paystack Verify Transaction API, and is idempotent on `paystackReference` (same event twice ⇒ one payment).
 - [ ] Delivery fee resolution `resolveDeliveryFee(state)` is a pure, unit-tested function.
@@ -587,6 +587,7 @@ Gates (enforced server-side):
 | `/shop` | (shop) | Public | US-A1 |
 | `/shop/[slug]` | (shop) | Public | US-A2, A3, A4, D2 |
 | `/checkout/[productId]` | (shop) | Customer | US-A4 |
+| `/checkout/success` | (shop) | Customer | US-A4 (after Paystack) |
 | `/custom` | (custom) | Public | Landing for custom journey |
 | `/custom/gallery` | (custom) | Public | US-B2 |
 | `/custom/request` | (custom) | Customer | US-B1 |
@@ -594,6 +595,9 @@ Gates (enforced server-side):
 | `/custom/book` | (custom) | Customer | US-F1 |
 | `/account/wardrobe` | (account) | Customer | US-D1 |
 | `/account/wardrobe/[orderId]` | (account) | Customer (owner of order) | US-D1, C4 |
+| `/account/wardrobe/repair` | (account) | Customer (owner of order) | US-D3 |
+| `/account/wardrobe/review` | (account) | Customer (owner of order) | US-H1 |
+| `/account/appointments` | (account) | Customer | US-F1 (cancel / move) |
 | `/account/measurements` | (account) | Customer | US-B3 |
 | `/account/profile` | (account) | Customer | US-E1 |
 | `/policies/terms` | (shop) | Public | D-11 (all sales final, non-refundable deposits) |
@@ -604,12 +608,15 @@ Gates (enforced server-side):
 | `/admin/products`, `/admin/swatches`, `/admin/portfolio` | admin | Admin | US-C3 |
 | `/admin/repairs` | admin | Admin | US-D3 |
 | `/admin/settings` | admin | Admin | Delivery zones, deposit %, studio address/hours |
-| `/admin/appointments` | admin | Admin | US-F2 |
+| `/admin/appointments`, `/admin/appointments/[id]` | admin | Admin | US-F2 |
 | `/admin/reviews` | admin | Admin | US-H1 |
 | `/api/auth/[...nextauth]` | api | — | US-E1 |
 | `/api/uploads` | api | Customer/Admin | US-B1, C3 |
 | `/api/webhooks/paystack` | api | Signed webhook | US-A4, C4 |
 | `/api/cron/reminders` | api | `CRON_SECRET` | US-G1 |
+| `/api/cron/release-reservations` | api | `CRON_SECRET` | US-A4 AC7 |
+| `/api/payments/callback` | api | Public (re-verifies with Paystack) | US-A4, C4 (D-15) |
+| `/dev/paystack` | — | Development only | Dev payment gateway (D-15) |
 
 > **Note:** Route groups `(shop)`, `(custom)`, `(account)` do not appear in URLs. The `(account)` group therefore serves paths under a literal `account/` segment: `src/app/(account)/account/...`.
 
@@ -779,7 +786,7 @@ dna-stitches/
 | Unit | Jest | Pure functions in `src/lib/` (status transitions, progress mapping, inventory, units, Zod schemas, slot generation). | ≥ 90% line coverage on `src/lib/`. |
 | Component | Jest + RTL | Shop cards/badges, SpecTable, SwatchGrid, RequestStepper, OrderProgress. | Every AC with UI behavior has ≥ 1 test. |
 | Integration | Jest + test Postgres (Docker or Neon branch) | Server Actions & loaders: auth/role checks, transactions, concurrency, idempotency. | All authorization rules covered. |
-| E2E | Playwright (+ `@axe-core/playwright`) | Critical flows below, run against Vercel preview. | Must pass before merge to `main`. |
+| E2E | Playwright (+ `@axe-core/playwright`) | Critical flows below, run in CI against a local server and a seeded Postgres (D-17). | Must pass before merge to `main`. |
 
 ### Critical E2E Flows
 1. **Browse → buy**: visitor browses shop → signs in → purchases available piece (Paystack test mode, delivery to a Lagos address) → piece shows as sold out.
@@ -831,6 +838,14 @@ None outstanding. All questions were resolved on 2026-11-01 (D-6 to D-13). New q
 | D-11 | **No refunds or returns** (was OQ-6). All RTW sales are final; custom-order deposits are non-refundable. Customers must explicitly acknowledge this before every payment; terms are published at `/policies/terms`. `REFUNDED` removed from `OrderStatus`. | Every piece is 1-of-1 or made to measure and cannot be resold. |
 | D-12 | **Delivery zones and fees are decided later** (was OQ-7). The owner manages them in `/admin/settings`; the seed script creates clearly-labelled placeholder zones. Entering real zones and fees is a **launch-blocking task**, not a build-blocking one. | Lets development continue while the owner confirms courier pricing. |
 | D-13 | **Free repair/alteration for defects within 7 days of handover** (was OQ-8), with still no cash refunds or returns. New `RepairRequest` entity and story US-D3. | Protects customer trust while keeping the no-refund policy. |
+| D-14 | **Checkout holds, not stock decrements** (US-A4 DoD). Starting checkout locks the product row (`SELECT … FOR UPDATE`) and creates a `PENDING_PAYMENT` order that holds the piece for 15 minutes. `quantity` decrements only when the payment succeeds. A payment that arrives after its hold lapsed and the piece sold is recorded, and the owner is alerted instead of selling twice. | Nothing has to be "given back" when a checkout is abandoned, and a late payment can't oversell. |
+| D-15 | **Paystack return path and dev gateway.** Customers return to the Route Handler `/api/payments/callback`, which re-verifies with Paystack. Without `PAYSTACK_SECRET_KEY` (never in production), payments go to a local `/dev/paystack` page that simulates success or cancellation. | A redirect target must be a route; the dev gateway lets every payment flow run locally and in E2E. |
+| D-16 | **Schedulers.** Releasing expired holds runs daily on Vercel Cron, and holds are also released whenever a checkout starts. Reminders (US-G1) are triggered every 15 minutes by a GitHub Actions workflow, not Vercel Cron. | Vercel Hobby allows daily crons only; switching reminders to Vercel Cron on Pro is a one-line `vercel.json` change. |
+| D-17 | **E2E runs in CI against a local server**, not Vercel previews. | The tests sign in through the dev magic-link fallback and pay through the dev gateway; previews send real email and take real payments. |
+| D-18 | **Rate limits are in-memory** (per server instance): notify-me 5 per IP per 10 minutes; magic-link sign-in 5 per email address and, in production, 30 per IP per 10 minutes. | Good enough for launch; move to a shared store (e.g. Upstash) if abuse appears. |
+| D-19 | **Repairs:** a customer-facing `rejectionReason`, separate from private `adminNotes`; one open repair per piece; the 7-day window is inclusive of exactly 7 × 24 h. | Customers deserve a reason; private notes stay private. |
+| D-20 | **Reviews:** the customer chooses the public `displayName` (default: first name and last initial); emails and private custom-request titles are never shown publicly; home-page testimonials are approved 4–5 star reviews. Reviews can't be edited after submitting. | Privacy, and keeping moderation simple. |
+| D-21 | **Security baseline:** security headers on every response (no framing, nosniff, HSTS, referrer and permissions policies); constant-time `CRON_SECRET` checks; `pnpm audit` clean. A full Content-Security-Policy is deferred (it needs per-request nonces). | Cheap, high-value protections for launch. |
 
 ---
 

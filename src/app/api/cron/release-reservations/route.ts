@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { isAuthorizedCron } from "@/lib/cron-auth";
 import { env } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 import { expireStaleOrders } from "@/server/data/checkout";
@@ -10,7 +11,7 @@ import { expireStaleOrders } from "@/server/data/checkout";
  * Protected by CRON_SECRET (Vercel Cron sends it as a Bearer token).
  */
 export async function GET(request: Request) {
-  if (!env.CRON_SECRET || request.headers.get("authorization") !== `Bearer ${env.CRON_SECRET}`) {
+  if (!isAuthorizedCron(request.headers.get("authorization"), env.CRON_SECRET)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const cancelled = await expireStaleOrders(prisma);

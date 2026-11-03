@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { enabledProviders, signIn } from "@/lib/auth";
+import { allowSignInEmail, getClientIp } from "@/lib/rate-limit";
 import { safeCallbackUrl } from "@/lib/route-access";
 
 export const metadata: Metadata = { title: "Sign in" };
@@ -19,6 +20,7 @@ const SIGN_IN_ERRORS: Record<string, string> = {
   OAuthAccountNotLinked:
     "This email is already linked to another sign-in method. Use the email link instead.",
   AccessDenied: "Access denied.",
+  RateLimited: "Too many sign-in emails were requested. Please wait a few minutes and try again.",
 };
 
 /**
@@ -60,6 +62,15 @@ async function SignInForms({ searchParams }: Pick<PageProps<"/sign-in">, "search
     if (!email.success) {
       const { redirect } = await import("next/navigation");
       redirect(`/sign-in?error=InvalidEmail&callbackUrl=${encodeURIComponent(redirectTo)}`);
+      return;
+    }
+    const { headers } = await import("next/headers");
+    const allowed = await allowSignInEmail(email.data, getClientIp(await headers()), {
+      production: process.env.NODE_ENV === "production",
+    });
+    if (!allowed) {
+      const { redirect } = await import("next/navigation");
+      redirect(`/sign-in?error=RateLimited&callbackUrl=${encodeURIComponent(redirectTo)}`);
     }
     await signIn("resend", { email: email.data, redirectTo });
   }
