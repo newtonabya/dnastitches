@@ -70,6 +70,10 @@ for it.
       `SITE_URL` (`https://<your-domain>`).
 - [ ] Run the **Reminders** workflow once by hand (Actions tab → Reminders → Run workflow). It
       should succeed and print `{"sent":0,…}`.
+- [ ] **Optional, text reminders:** create a [Termii](https://termii.com) account, fund it,
+      register a sender ID, then set `TERMII_API_KEY` and `TERMII_SENDER_ID` in Vercel (and
+      `TERMII_CHANNEL` if you want `generic` or `whatsapp` instead of `dnd`), and redeploy.
+      Until then, customers who opt in still get the emails.
 
 ## 6. Content and settings (signed in as admin)
 
