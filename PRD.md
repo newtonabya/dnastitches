@@ -100,7 +100,7 @@
 |---|---|---|
 | **MVP (v1.0)** | Auth, RTW shop (browse, detail, Paystack checkout, pickup or delivery), sold-out → custom upsell, custom request form with uploads, swatches & measurements, admin pipeline + client profile, custom-order quotes with Paystack deposit and balance payments, My Wardrobe progress, notify-me list. | A, B, C, D, E (core) |
 | **v1.1** | Consultation scheduler, automated fitting reminders (email), reviews. | F, G, H |
-| **v1.2+** | SMS/WhatsApp reminders (built: US-G2), analytics dashboard (built: US-C5), restock auto-notify (built: US-D4), courier API integration. | D, G |
+| **v1.2+** | SMS/WhatsApp reminders (built: US-G2), analytics dashboard (built: US-C5), restock auto-notify (built: US-D4), courier API integration (built: US-D5, Sendbox). | D, G |
 
 Each user story below is tagged **[MVP]**, **[v1.1]**, or **[v1.2]**.
 
@@ -501,6 +501,21 @@ Gates (enforced server-side):
 - [ ] Requests are claimed with one atomic `UPDATE … RETURNING` that also checks the product is published and in stock.
 - [ ] Integration tests for the claim conditions, concurrent saves and retry after a failed email; E2E for restock from the admin product page.
 
+#### US-D5 · Courier delivery **[v1.2]**
+> As a **customer**, I pay a real delivery price and can follow my parcel; as the **owner**, I book the courier from the admin.
+
+**Acceptance Criteria**
+1. With a courier configured (Sendbox), checkout shows and charges the courier's cheapest live price for the chosen address, with its delivery estimate. If the courier has no price or doesn't answer within a few seconds, the delivery-zone fee applies (D-12); with neither, only pickup is offered.
+2. The price shown on the checkout page is the price charged (quotes are cached for a few minutes).
+3. On a paid shop order, or a Ready custom order with nothing left to pay, the admin sees the courier's options and prices, and what the customer paid for delivery, and books one. Only one courier can be booked per order at a time, even with two clicks.
+4. The customer is emailed when the courier is booked, with the tracking number, and sees the courier, status and tracking number in My Wardrobe.
+5. Tracking updates at least every 15 minutes, and sooner via the courier's webhook. Updates never move a shipment backwards. When the parcel is delivered, the shop order becomes Fulfilled (starting the repair window) or the custom order Completed, logged as a system change, and the customer is emailed once.
+6. A booking on hold at the courier (e.g. Sendbox wallet too low) is flagged to the admin.
+
+**Definition of Done**
+- [ ] `CourierProvider` interface with Sendbox and a simulated development courier; status mapping, rate choice and event merging are pure, unit-tested functions.
+- [ ] Integration tests for eligibility, booking (including two at once), tracking and delivery hand-off, and the webhook's token check; E2E for checkout with a live price, booking and the customer's tracking.
+
 #### US-D3 · Report a defect for free repair **[MVP]**
 > As a **customer**, I can report a defect in a piece I received and have it repaired or altered free of charge.
 
@@ -896,6 +911,7 @@ None outstanding. All questions were resolved on 2026-11-01 (D-6 to D-13). New q
 | D-22 | **Restock emails are automatic; similar-fabric ones aren't** (US-D4). A restock is a clear event (the piece is published and in stock), so those requests are emailed on save. "A similar fabric became available" has no such event, so the owner follows those up from the CSV export. | Avoids emailing people about the wrong thing. |
 | D-23 | **Text reminders go through Termii, opt-in only** (US-G2). One API covers SMS (including the DND route that reaches numbers on Do-Not-Disturb) and WhatsApp, selected by `TERMII_CHANNEL`. Texts are in addition to emails, never instead of them. The `SmsProvider` interface leaves room for another provider (e.g. Twilio). | Nigeria-first provider and cost; explicit consent for texts. |
 | D-24 | **Analytics are computed live from the order data, with no separate tracking** (US-C5). Revenue counts money received, by payment date, not quotes or order totals. The custom funnel follows the requests received in the range (a cohort), so recent requests show low rates until they progress. No page-view tracking or third-party analytics. | One source of truth; no cookies or consent banner needed. |
+| D-25 | **Courier: Sendbox, with webhooks as a nudge only** (US-D5). Sendbox quotes service tiers across Nigerian couriers from one account. Its webhook payload and signature aren't documented, so a webhook call (authenticated by a token in its URL) only triggers a fresh lookup from Sendbox's tracking API, and a 15-minute poll covers lost webhooks. The customer pays the live price at checkout; the owner books later at the then-current price, so small differences are absorbed. | Correct tracking without trusting unsigned data; works on the free GitHub Actions schedule. |
 
 ---
 

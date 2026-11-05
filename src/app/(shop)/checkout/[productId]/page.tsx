@@ -6,12 +6,13 @@ import { Suspense } from "react";
 
 import { type CheckoutAddress, CheckoutForm } from "@/components/shop/checkout-form";
 import { Button } from "@/components/ui/button";
-import { resolveDeliveryFee } from "@/lib/delivery";
+import { chooseDelivery, resolveDeliveryFee } from "@/lib/delivery";
 import { env } from "@/lib/env";
 import { formatNGN } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 import { startCheckoutAction } from "@/server/actions/checkout";
 import { requireUser } from "@/server/auth/guards";
+import { quoteCheckoutDelivery } from "@/server/courier";
 
 export const metadata: Metadata = { title: "Checkout", robots: { index: false } };
 
@@ -70,14 +71,18 @@ async function Checkout({ params }: Pick<PageProps<"/checkout/[productId]">, "pa
     }),
     prisma.deliveryZone.findMany({ where: { isActive: true } }),
   ]);
-  const options: CheckoutAddress[] = addresses.map((a) => {
-    const fee = resolveDeliveryFee(a.state, zones);
+  // US-D5: the courier's live price per address where there is one, else the zone fee.
+  const quotes = await Promise.all(
+    addresses.map((a) => quoteCheckoutDelivery(a, product.priceKobo, product.name)),
+  );
+  const options: CheckoutAddress[] = addresses.map((a, i) => {
+    const delivery = chooseDelivery(quotes[i] ?? null, resolveDeliveryFee(a.state, zones));
     return {
       id: a.id,
       summary: `${a.recipientName}, ${a.line1}, ${a.city}, ${a.state}`,
       isDefault: a.isDefault,
-      delivery: fee.available
-        ? { feeKobo: fee.feeKobo, etaDays: fee.etaDays, zoneName: fee.zoneName }
+      delivery: delivery
+        ? { feeKobo: delivery.feeKobo, etaDays: delivery.etaDays, label: delivery.label }
         : null,
     };
   });

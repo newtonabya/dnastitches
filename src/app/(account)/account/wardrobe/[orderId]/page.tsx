@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+
+import { ShipmentNote } from "@/components/account/shipment-note";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
@@ -162,6 +164,15 @@ async function Order({
         <p className="text-sm text-muted-foreground">
           We&apos;ll send your quote after your consultation and measurements.
         </p>
+      ) : null}
+
+      {order.shipments[0] ? (
+        <section aria-labelledby="delivery-heading" className="flex flex-col gap-2">
+          <h2 id="delivery-heading" className="text-lg font-semibold">
+            Delivery
+          </h2>
+          <ShipmentNote shipment={order.shipments[0]} />
+        </section>
       ) : null}
 
       {order.status !== "COMPLETED" && order.status !== "CANCELLED" ? (

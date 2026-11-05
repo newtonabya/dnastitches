@@ -12,6 +12,7 @@ import {
   reserveRtwOrder,
   startCustomOrderPayment,
 } from "@/server/data/checkout";
+import { quoteCheckoutDelivery } from "@/server/courier";
 import { getPaymentProvider, paymentCallbackUrl } from "@/server/payments/provider";
 
 import type { ActionResult } from "./types";
@@ -33,7 +34,11 @@ export async function startCheckoutAction(
   if (!parsed.success) return { ok: false, fieldErrors: fieldErrors(parsed.error) };
 
   await expireStaleOrders(prisma, new Date(), parsed.data.productId);
-  const reserved = await reserveRtwOrder(prisma, { userId: session.user.id, ...parsed.data });
+  const reserved = await reserveRtwOrder(prisma, {
+    userId: session.user.id,
+    ...parsed.data,
+    courierQuote: await courierQuoteFor(session.user.id, parsed.data),
+  });
   if (!reserved.ok)
     return { ok: false, formError: reserved.message, fieldErrors: { code: reserved.code } };
 
@@ -52,6 +57,30 @@ export async function startCheckoutAction(
     return { ok: false, formError: PROVIDER_DOWN };
   }
   redirect(authorizationUrl);
+}
+
+/**
+ * The courier's live price for the chosen address (US-D5), the same cached quote the
+ * checkout page showed. Fetched here, outside the reservation transaction, because it's
+ * a network call; null means the zone fee applies.
+ */
+async function courierQuoteFor(
+  userId: string,
+  input: { productId: string; fulfillmentMethod: string; addressId?: string },
+) {
+  if (input.fulfillmentMethod !== "DELIVERY" || !input.addressId) return null;
+  const [address, product] = await Promise.all([
+    prisma.address.findFirst({
+      where: { id: input.addressId, userId },
+      select: { line1: true, city: true, state: true },
+    }),
+    prisma.product.findUnique({
+      where: { id: input.productId },
+      select: { priceKobo: true, name: true },
+    }),
+  ]);
+  if (!address || !product) return null;
+  return quoteCheckoutDelivery(address, product.priceKobo, product.name);
 }
 
 /** US-C4 AC2/AC4: pay a custom order's deposit or balance online. */

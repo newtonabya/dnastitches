@@ -38,6 +38,11 @@ export async function listWardrobe(db: Db, userId: string, now = new Date()) {
         fulfillmentMethod: true,
         fulfilledAt: true,
         product: { select: { id: true, name: true, slug: true } },
+        shipments: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: { status: true, trackingCode: true, trackingUrl: true, courierName: true },
+        },
       },
     }),
   ]);
@@ -72,6 +77,11 @@ export async function getWardrobeOrder(db: Db, userId: string, orderId: string) 
       fulfillmentMethod: true,
       createdAt: true,
       completedAt: true,
+      shipments: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: { status: true, trackingCode: true, trackingUrl: true, courierName: true },
+      },
       reviews: { select: { id: true, isApproved: true, moderatedAt: true } },
       appointments: {
         where: { status: { in: ["REQUESTED", "CONFIRMED"] } },
@@ -147,6 +157,11 @@ export async function listShopOrders(db: Pick<Db, "order">) {
       fulfilledAt: true,
       product: { select: { name: true } },
       user: { select: { id: true, name: true, email: true, phone: true } },
+      shipments: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: { status: true, trackingCode: true },
+      },
       address: {
         select: {
           recipientName: true,

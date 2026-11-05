@@ -1,4 +1,5 @@
-# Fitting and pickup reminders (US-G1): calls the reminders endpoint every 15 minutes.
+# Fitting and pickup reminders (US-G1) and courier tracking (US-D5): calls both endpoints
+# every 15 minutes.
 # A free alternative to a 15-minute Vercel Cron, which needs the Vercel Pro plan.
 #
 # Setup (GitHub → Settings → Secrets and variables → Actions):
@@ -36,3 +37,12 @@ jobs:
           curl --fail-with-body --silent --show-error --max-time 60 \
             -H "Authorization: Bearer $CRON_SECRET" \
             "${SITE_URL%/}/api/cron/reminders"
+      - name: Update courier tracking
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          if [ -z "$CRON_SECRET" ] || [ -z "$SITE_URL" ]; then exit 0; fi
+          curl --fail-with-body --silent --show-error --max-time 120 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "${SITE_URL%/}/api/cron/shipments"

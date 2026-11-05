@@ -1,4 +1,4 @@
-import { resolveDeliveryFee } from "@/lib/delivery";
+import { chooseDelivery, resolveDeliveryFee } from "@/lib/delivery";
 
 const zones = [
   { id: "z0", name: "Old Lagos", states: ["Lagos"], feeKobo: 1, etaDays: 1, isActive: false },
@@ -28,5 +28,39 @@ describe("resolveDeliveryFee", () => {
   it("is unavailable when no active zone covers the state", () => {
     expect(resolveDeliveryFee("Kano", zones)).toEqual({ available: false });
     expect(resolveDeliveryFee("Lagos", [zones[0]!])).toEqual({ available: false });
+  });
+});
+
+describe("chooseDelivery (US-D5)", () => {
+  const zone = {
+    available: true as const,
+    zoneId: "z1",
+    zoneName: "Lagos",
+    feeKobo: 250_000,
+    etaDays: 2,
+  };
+  const courier = { feeKobo: 310_000, courierName: "Sendbox Standard", etaDays: 3 };
+
+  it("prefers the courier's live price", () => {
+    expect(chooseDelivery(courier, zone)).toEqual({
+      feeKobo: 310_000,
+      etaDays: 3,
+      label: "Sendbox Standard",
+      zoneId: null,
+      quotedBy: "Sendbox Standard",
+    });
+  });
+
+  it("falls back to the zone fee, or nothing", () => {
+    expect(chooseDelivery(null, zone)).toEqual({
+      feeKobo: 250_000,
+      etaDays: 2,
+      label: "Lagos",
+      zoneId: "z1",
+      quotedBy: null,
+    });
+    expect(chooseDelivery({ ...courier, feeKobo: 0 }, zone)?.zoneId).toBe("z1");
+    expect(chooseDelivery(null, { available: false })).toBeNull();
+    expect(chooseDelivery(courier, { available: false })?.quotedBy).toBe("Sendbox Standard");
   });
 });
