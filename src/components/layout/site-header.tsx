@@ -2,6 +2,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
 
+import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { auth } from "@/lib/auth";
 import { signOutAction } from "@/server/actions/auth";
@@ -13,17 +14,20 @@ const NAV = [
 
 export function SiteHeader() {
   return (
-    <header className="border-b">
+    <header className="sticky top-0 z-40 border-b bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
       <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-4 px-4">
         <div className="flex items-center gap-6">
-          <Link href="/" className="font-semibold tracking-tight">
-            DNA Stitches
+          <Link href="/" className="flex items-center gap-2.5">
+            <Logo className="size-9" />
+            <span className="sr-only font-serif text-xl font-semibold tracking-wide whitespace-nowrap sm:not-sr-only">
+              DNA Stitches
+            </span>
           </Link>
           <nav aria-label="Main">
-            <ul className="flex items-center gap-4 text-sm">
+            <ul className="flex items-center gap-4 text-xs tracking-[0.18em] uppercase">
               {NAV.map((item) => (
                 <li key={item.href}>
-                  <Link href={item.href} className="hover:underline">
+                  <Link href={item.href} className="transition-colors hover:text-primary">
                     {item.label}
                   </Link>
                 </li>

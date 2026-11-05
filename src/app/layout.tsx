@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Cormorant_Garamond, Geist, Geist_Mono, Pinyon_Script } from "next/font/google";
 
 import { SiteHeader } from "@/components/layout/site-header";
 
@@ -15,6 +15,20 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+/** Elegant serif for the wordmark and headings. */
+const display = Cormorant_Garamond({
+  variable: "--font-display",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
+
+/** Delicate script for the tagline only. */
+const script = Pinyon_Script({
+  variable: "--font-script-face",
+  subsets: ["latin"],
+  weight: "400",
+});
+
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
   title: {
@@ -27,7 +41,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en-NG" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+    <html
+      lang="en-NG"
+      style={{ colorScheme: "dark" }}
+      className={`dark ${geistSans.variable} ${geistMono.variable} ${display.variable} ${script.variable} h-full antialiased`}
+    >
       <body className="flex min-h-full flex-col">
         <a
           href="#content"
