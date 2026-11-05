@@ -23,6 +23,8 @@ export async function useUniqueIp(page: Page) {
 
 /** WCAG 2.2 AA automated checks (NFR-2). */
 export async function expectNoA11yViolations(page: Page) {
+  // Next streams metadata, so <title> can land just after the content: wait for it.
+  await expect(page).toHaveTitle(/\S/);
   const results = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
     .analyze();
