@@ -11,7 +11,7 @@ truth** for product behaviour, data model and architecture.
 - **Customer side:** sign-in and profile (US-E1); the shop gallery, product detail and notify-me (US-A1, A2, D2); the custom journey (US-A3, B1, B2, B3); Paystack checkout for ready-to-wear (US-A4); online deposits and balances (US-C4); My Wardrobe (US-D1); defect repair requests (US-D3); booking consultations (US-F1); fitting and pickup reminder emails (US-G1); reviews (US-H1).
 - **Admin side:** the order pipeline and order detail (US-C1), client profiles (US-C2), catalog management (US-C3), the notify-me CSV export (US-D2), delivery zones (D-12), quotes and offline payments (US-C4), shop orders, repair requests (US-D3), appointments with booking hours (US-F2), and review approval (US-H1).
 
-Next on the roadmap (`PRD.md` §4, v1.2+): SMS/WhatsApp reminders, an analytics dashboard, restock auto-notify and a courier integration.
+v1.2 so far: restock emails (US-D4). Still on the roadmap (`PRD.md` §4): SMS/WhatsApp reminders, an analytics dashboard and a courier integration.
 
 ## Stack
 
@@ -132,6 +132,14 @@ Something has to call it every 15 minutes. Pick one:
 - **Vercel Cron (Pro plan):** add `{ "path": "/api/cron/reminders", "schedule": "*/15 * * * *" }`
   to `crons` in `vercel.json`. The Hobby plan only allows daily crons, which is too rare for the
   3-hour reminder.
+
+### Restock emails
+
+When a sold-out piece is back in stock and published, saving it in `/admin/products` emails
+everyone who asked to hear about a restock (notify-me), once each. The save message says how many
+people are being emailed, and the product page shows when each request was emailed. A failed email
+is retried the next time you save. "Similar fabric" requests aren't emailed automatically: export
+them as CSV and follow up yourself.
 
 ### Reviews
 

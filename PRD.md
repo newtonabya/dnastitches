@@ -100,7 +100,7 @@
 |---|---|---|
 | **MVP (v1.0)** | Auth, RTW shop (browse, detail, Paystack checkout, pickup or delivery), sold-out → custom upsell, custom request form with uploads, swatches & measurements, admin pipeline + client profile, custom-order quotes with Paystack deposit and balance payments, My Wardrobe progress, notify-me list. | A, B, C, D, E (core) |
 | **v1.1** | Consultation scheduler, automated fitting reminders (email), reviews. | F, G, H |
-| **v1.2+** | SMS/WhatsApp reminders, analytics dashboard, restock auto-notify, courier API integration. | — |
+| **v1.2+** | SMS/WhatsApp reminders, analytics dashboard, restock auto-notify (built: US-D4), courier API integration. | D |
 
 Each user story below is tagged **[MVP]**, **[v1.1]**, or **[v1.2]**.
 
@@ -469,7 +469,20 @@ Gates (enforced server-side):
 **Definition of Done**
 - [ ] Zod `notificationRequestSchema`; Server Action `createNotificationRequest` with upsert on the unique key.
 - [ ] Rate limiter abstraction in `src/lib/rate-limit.ts` (in-memory for dev, Upstash/Vercel KV in prod).
-- [ ] Auto-sending restock emails is **out of scope** for MVP (v1.2).
+- [ ] Auto-sending restock emails is **out of scope** for MVP (v1.2). *(Built in v1.2 as US-D4.)*
+
+#### US-D4 · Restock emails **[v1.2]**
+> As a **visitor or customer** who asked to hear about a restock, I get one email when the piece is available again.
+
+**Acceptance Criteria**
+1. When the owner saves a product that is published and in stock, every `RESTOCK` request for it that hasn't been emailed is emailed once, with the piece's name, price and link, and `notifiedAt` is set.
+2. Each request is emailed at most once, even if two saves happen at the same moment. A request whose email fails is retried on the next save.
+3. The owner sees how many people are being emailed in the save confirmation, and when each request was emailed on the admin product page and in the CSV export.
+4. `SIMILAR_FABRIC` requests are not emailed automatically (D-22).
+
+**Definition of Done**
+- [ ] Requests are claimed with one atomic `UPDATE … RETURNING` that also checks the product is published and in stock.
+- [ ] Integration tests for the claim conditions, concurrent saves and retry after a failed email; E2E for restock from the admin product page.
 
 #### US-D3 · Report a defect for free repair **[MVP]**
 > As a **customer**, I can report a defect in a piece I received and have it repaired or altered free of charge.
@@ -846,6 +859,7 @@ None outstanding. All questions were resolved on 2026-11-01 (D-6 to D-13). New q
 | D-19 | **Repairs:** a customer-facing `rejectionReason`, separate from private `adminNotes`; one open repair per piece; the 7-day window is inclusive of exactly 7 × 24 h. | Customers deserve a reason; private notes stay private. |
 | D-20 | **Reviews:** the customer chooses the public `displayName` (default: first name and last initial); emails and private custom-request titles are never shown publicly; home-page testimonials are approved 4–5 star reviews. Reviews can't be edited after submitting. | Privacy, and keeping moderation simple. |
 | D-21 | **Security baseline:** security headers on every response (no framing, nosniff, HSTS, referrer and permissions policies); constant-time `CRON_SECRET` checks; `pnpm audit` clean. A full Content-Security-Policy is deferred (it needs per-request nonces). | Cheap, high-value protections for launch. |
+| D-22 | **Restock emails are automatic; similar-fabric ones aren't** (US-D4). A restock is a clear event (the piece is published and in stock), so those requests are emailed on save. "A similar fabric became available" has no such event, so the owner follows those up from the CSV export. | Avoids emailing people about the wrong thing. |
 
 ---
 

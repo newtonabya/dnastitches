@@ -54,6 +54,8 @@ export default defineConfig({
           ADMIN_EMAILS: E2E_ADMIN_EMAILS,
           // Payments go through the built-in dev gateway (/dev/paystack), never Paystack.
           PAYSTACK_SECRET_KEY: "",
+          // No floating dev-tools button over the app on mobile viewports.
+          DISABLE_DEV_INDICATORS: "1",
         },
       },
 });

@@ -10,7 +10,9 @@ import { fieldErrors } from "@/lib/validators/fields";
 import { getAdminForAction } from "@/server/auth/admin";
 import * as catalog from "@/server/data/admin/catalog";
 import { PORTFOLIO_TAG, SWATCHES_TAG } from "@/server/loaders/portfolio";
+import { claimRestockRequests } from "@/server/data/restock";
 import { PRODUCTS_TAG, productTag } from "@/server/loaders/products";
+import { sendRestockEmails } from "@/server/notifications/restock";
 
 import type { ActionResult } from "../types";
 
@@ -57,13 +59,20 @@ export async function updateProductAction(
   if (!result.ok)
     return "notFound" in result ? NOT_FOUND : { ok: false, fieldErrors: result.fieldErrors };
   refreshProducts(result.oldSlug, result.slug);
+  // v1.2 (US-D4): if it's published and in stock, email everyone waiting for a restock.
+  const claimed = await claimRestockRequests(prisma, id.data, new Date());
+  sendRestockEmails(id.data, claimed);
   revalidatePath(`/admin/products/${id.data}`);
+  const saved =
+    result.slug !== result.oldSlug
+      ? `Saved. The page address is now /shop/${result.slug}.`
+      : "Saved.";
   return {
     ok: true,
     message:
-      result.slug !== result.oldSlug
-        ? `Saved. The page address is now /shop/${result.slug}.`
-        : "Saved.",
+      claimed.length > 0
+        ? `${saved} Emailing ${claimed.length} ${claimed.length === 1 ? "person" : "people"} who asked to hear when it's back.`
+        : saved,
   };
 }
 

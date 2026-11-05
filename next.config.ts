@@ -28,6 +28,9 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
+  // The E2E dev server hides the floating dev-tools button: on small screens it covers
+  // buttons near the bottom-left and takes their clicks. Production never shows it.
+  devIndicators: process.env.DISABLE_DEV_INDICATORS === "1" ? false : undefined,
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
