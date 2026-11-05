@@ -100,7 +100,7 @@
 |---|---|---|
 | **MVP (v1.0)** | Auth, RTW shop (browse, detail, Paystack checkout, pickup or delivery), sold-out → custom upsell, custom request form with uploads, swatches & measurements, admin pipeline + client profile, custom-order quotes with Paystack deposit and balance payments, My Wardrobe progress, notify-me list. | A, B, C, D, E (core) |
 | **v1.1** | Consultation scheduler, automated fitting reminders (email), reviews. | F, G, H |
-| **v1.2+** | SMS/WhatsApp reminders (built: US-G2), analytics dashboard, restock auto-notify (built: US-D4), courier API integration. | D, G |
+| **v1.2+** | SMS/WhatsApp reminders (built: US-G2), analytics dashboard (built: US-C5), restock auto-notify (built: US-D4), courier API integration. | D, G |
 
 Each user story below is tagged **[MVP]**, **[v1.1]**, or **[v1.2]**.
 
@@ -426,6 +426,23 @@ Gates (enforced server-side):
 - [ ] `computeBalance(order, payments)` is a pure, unit-tested function.
 - [ ] Shared Paystack webhook (US-A4) routes `CUSTOM_DEPOSIT` / `CUSTOM_BALANCE` payments by metadata; idempotent.
 - [ ] E2E: admin sends quote → customer pays deposit (Paystack test mode) → order auto-moves to In Production.
+
+#### US-C5 · Analytics dashboard **[v1.2]**
+> As the **owner**, I can see how the business is doing over a period I choose.
+
+**Acceptance Criteria**
+1. `/admin/analytics` has a range filter: last 30 days (default), 90 days, 12 months, or all time. Days are counted in `STUDIO_TIMEZONE`.
+2. **Revenue:** money received in the range (successful payments, by the day they were paid), split into shop and custom (deposits and balances), and into online (Paystack) and cash or transfer (offline).
+3. **Trend:** a column chart of revenue for each of the last 12 months, with a hover/focus tooltip per month and the same figures as a table.
+4. **Shop:** pieces sold and average order value.
+5. **Custom orders:** of the requests received in the range, how many were quoted, paid a deposit, completed or were cancelled, with rates; and the median days from request to completion for orders completed in the range.
+6. **Most wanted:** the pieces with the most notify-me requests still waiting.
+7. **Appointments:** bookings by type (not counting cancelled), and the no-show rate among past appointments. **Reviews:** count and average rating.
+8. Admins only; empty periods show zeros and dashes, never errors.
+
+**Definition of Done**
+- [ ] Range, month and rate arithmetic are pure, unit-tested functions (`src/lib/analytics.ts`).
+- [ ] Integration tests with exact figures on an isolated date window; E2E with axe on desktop and mobile.
 
 ---
 
@@ -878,6 +895,7 @@ None outstanding. All questions were resolved on 2026-11-01 (D-6 to D-13). New q
 | D-21 | **Security baseline:** security headers on every response (no framing, nosniff, HSTS, referrer and permissions policies); constant-time `CRON_SECRET` checks; `pnpm audit` clean. A full Content-Security-Policy is deferred (it needs per-request nonces). | Cheap, high-value protections for launch. |
 | D-22 | **Restock emails are automatic; similar-fabric ones aren't** (US-D4). A restock is a clear event (the piece is published and in stock), so those requests are emailed on save. "A similar fabric became available" has no such event, so the owner follows those up from the CSV export. | Avoids emailing people about the wrong thing. |
 | D-23 | **Text reminders go through Termii, opt-in only** (US-G2). One API covers SMS (including the DND route that reaches numbers on Do-Not-Disturb) and WhatsApp, selected by `TERMII_CHANNEL`. Texts are in addition to emails, never instead of them. The `SmsProvider` interface leaves room for another provider (e.g. Twilio). | Nigeria-first provider and cost; explicit consent for texts. |
+| D-24 | **Analytics are computed live from the order data, with no separate tracking** (US-C5). Revenue counts money received, by payment date, not quotes or order totals. The custom funnel follows the requests received in the range (a cohort), so recent requests show low rates until they progress. No page-view tracking or third-party analytics. | One source of truth; no cookies or consent banner needed. |
 
 ---
 
