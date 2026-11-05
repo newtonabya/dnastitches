@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { type Page, expect, test } from "@playwright/test";
 
 import { SEED, expectNoA11yViolations } from "./helpers";
 
@@ -11,14 +11,16 @@ test.describe("US-A1 shop gallery", () => {
     await expect(cards.first()).toBeVisible();
     await expect(page.getByText(SEED.draft.name)).toHaveCount(0);
 
-    const available = cards.filter({ hasText: SEED.available.name });
+    // Pieces created by tests running in parallel are newest, so a seeded piece can be on a
+    // later page: page through to it.
+    const available = await findCard(page, SEED.available.name);
     await expect(available).toHaveAttribute("data-status", "AVAILABLE");
     await expect(available.getByText("Available")).toBeVisible();
 
-    const lowStock = cards.filter({ hasText: SEED.lowStock.name });
+    const lowStock = await findCard(page, SEED.lowStock.name);
     await expect(lowStock.getByText("Last One")).toBeVisible();
 
-    const soldOut = cards.filter({ hasText: SEED.soldOut.name });
+    const soldOut = await findCard(page, SEED.soldOut.name);
     await expect(soldOut.getByText("1-of-1 · Sold")).toBeVisible();
     await expect(soldOut.getByRole("img")).toHaveClass(/grayscale/);
 
@@ -49,3 +51,20 @@ test.describe("US-A1 shop gallery", () => {
     expect(availableStatuses).not.toContain("SOLD_OUT");
   });
 });
+
+/** The card for a piece, starting on page 1 and following "Next" until it's found. */
+async function findCard(page: Page, name: string) {
+  await page.goto("/shop");
+  for (let pageNumber = 1; pageNumber <= 6; pageNumber++) {
+    const card = page.getByTestId("product-card").filter({ hasText: name });
+    await expect(page.getByTestId("product-card").first()).toBeVisible();
+    if ((await card.count()) > 0) return card;
+    const next = page
+      .getByRole("navigation", { name: "Pagination" })
+      .getByRole("link", { name: "Next" });
+    if ((await next.count()) === 0) break;
+    await next.click();
+    await expect(page).toHaveURL(new RegExp(`page=${pageNumber + 1}`));
+  }
+  throw new Error(`No shop card for ${name}`);
+}
