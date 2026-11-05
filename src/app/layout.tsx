@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import { Cormorant_Garamond, Geist, Geist_Mono, Pinyon_Script } from "next/font/google";
 
 import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
@@ -66,7 +67,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <div id="content" className="flex flex-1 flex-col">
           {children}
         </div>
-        <MobileTabBar />
+        {/* Reads the URL, so it renders at request time, apart from the static shell. */}
+        <Suspense fallback={null}>
+          <MobileTabBar />
+        </Suspense>
       </body>
     </html>
   );
