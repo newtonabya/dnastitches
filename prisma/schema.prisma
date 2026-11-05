@@ -18,6 +18,7 @@
 // - AvailabilityRule, BlackoutDate: the availability model named in US-F1's DoD.
 // - Reminder.offsetMinutes, skippedAt, attempts, lockedUntil: idempotent sending and retries (US-G1).
 // - Review.displayName (public name the customer chooses) and Review.moderatedAt (pending vs hidden, US-H1).
+// - User.smsReminders and ReminderChannel.SMS: text-message reminders (v1.2, US-G2).
 
 generator client {
   provider = "prisma-client"
@@ -129,6 +130,7 @@ enum RepairStatus {
 
 enum ReminderChannel {
   EMAIL
+  SMS // text message: SMS or WhatsApp, per TERMII_CHANNEL (v1.2)
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -141,6 +143,8 @@ model User {
   emailVerified DateTime?
   name          String?
   phone         String? // E.164 (+234…)
+  /// Opted in to appointment reminders by text (SMS/WhatsApp, v1.2). Needs a phone number.
+  smsReminders  Boolean   @default(false)
   role          Role      @default(CUSTOMER)
   image         String?
   createdAt     DateTime  @default(now())
@@ -573,7 +577,7 @@ model Reminder {
 
   appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
 
-  @@unique([appointmentId, offsetMinutes])
+  @@unique([appointmentId, channel, offsetMinutes])
   @@index([sendAt, sentAt])
 }
 

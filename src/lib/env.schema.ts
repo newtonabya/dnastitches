@@ -108,12 +108,24 @@ export const envSchema = z
     STUDIO_HOURS: optionalString,
     // Booking (US-F1): consultation length, and whether bookings are confirmed instantly.
     CONSULTATION_MINUTES: intFromString(15, 240, 60),
+    // Text-message reminders (v1.2): Termii. Without a key, texts are logged in development
+    // and skipped in production.
+    TERMII_API_KEY: optionalString,
+    TERMII_SENDER_ID: optionalString,
+    TERMII_CHANNEL: z.enum(["dnd", "generic", "whatsapp"]).optional().default("dnd"),
     APPOINTMENTS_AUTO_CONFIRM: z
       .enum(["true", "false", ""])
       .optional()
       .transform((v) => v === "true"),
   })
   .superRefine((env, ctx) => {
+    if (Boolean(env.TERMII_API_KEY) !== Boolean(env.TERMII_SENDER_ID)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["TERMII_SENDER_ID"],
+        message: "TERMII_API_KEY and TERMII_SENDER_ID must be set together",
+      });
+    }
     if (env.NODE_ENV !== "production") return;
     for (const key of REQUIRED_IN_PRODUCTION) {
       if (env[key] === undefined) {
