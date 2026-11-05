@@ -4,7 +4,7 @@ import { ProductCard } from "./product-card";
 
 export function ProductGrid({ products }: { products: ProductCardData[] }) {
   return (
-    <ul className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <ul className="grid grid-cols-2 gap-x-3 gap-y-8 sm:gap-x-6 sm:gap-y-10 lg:grid-cols-3 xl:grid-cols-4">
       {products.map((product, i) => (
         <li key={product.id}>
           <ProductCard product={product} priority={i < 2} />
@@ -17,7 +17,7 @@ export function ProductGrid({ products }: { products: ProductCardData[] }) {
 export function ProductGridSkeleton({ count = 8 }: { count?: number }) {
   return (
     <div role="status" aria-label="Loading products">
-      <ul className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <ul className="grid grid-cols-2 gap-x-3 gap-y-8 sm:gap-x-6 sm:gap-y-10 lg:grid-cols-3 xl:grid-cols-4">
         {Array.from({ length: count }, (_, i) => (
           <li key={i} aria-hidden>
             <div className="aspect-[4/5] animate-pulse rounded-lg bg-muted" />

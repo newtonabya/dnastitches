@@ -48,3 +48,46 @@ export function Logo({ className }: { className?: string }) {
     </svg>
   );
 }
+
+/**
+ * The simplified mark, for small sizes (app icon, favicon, the mobile header):
+ * an interlaced "D" and "S" with a small pair of scissors, inside a gold ring.
+ */
+export function LogoMark({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 64 64"
+      aria-hidden="true"
+      focusable="false"
+      className={cn("size-9 text-primary", className)}
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <LogoMarkPaths />
+    </svg>
+  );
+}
+
+/** Shared with the app icon (src/app/icon.svg), which must stay a static file. */
+export function LogoMarkPaths() {
+  return (
+    <>
+      <circle cx="32" cy="32" r="30" strokeWidth="1.6" />
+      {/* D */}
+      <path d="M17 15v34M17 15h8c10 0 16 7 16 17s-6 17-16 17h-8" strokeWidth="3" />
+      {/* S, interlaced through the D */}
+      <path
+        d="M47 19.5c-1.8-2.7-4.8-4-8-4-4.6 0-8 2.7-8 6.6 0 8.6 17 5.4 17 15.4 0 4.6-4.1 8-9.4 8-3.8 0-7.1-1.6-9-4.6"
+        strokeWidth="3"
+      />
+      {/* Scissors */}
+      <g strokeWidth="1.4">
+        <circle cx="28.5" cy="56" r="1.8" />
+        <circle cx="35.5" cy="56" r="1.8" />
+        <path d="M29.8 54.6 35 50M34.2 54.6 29 50" />
+      </g>
+    </>
+  );
+}
