@@ -2,7 +2,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
 
-import { Logo, LogoMark } from "@/components/brand/logo";
+import { LogoMark } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { auth } from "@/lib/auth";
 import { signOutAction } from "@/server/actions/auth";
@@ -18,8 +18,7 @@ export function SiteHeader() {
       <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-4 px-4">
         <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center gap-2.5">
-            <LogoMark className="size-9 sm:hidden" />
-            <Logo className="hidden size-9 sm:block" />
+            <LogoMark className="h-10" />
             <span className="sr-only font-serif text-xl font-semibold tracking-wide whitespace-nowrap sm:not-sr-only">
               DNA Stitches
             </span>

@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 
-import { Logo } from "@/components/brand/logo";
+import { LogoLockup } from "@/components/brand/logo";
 import { Stars } from "@/components/reviews/stars";
 import { getPortfolio } from "@/server/loaders/portfolio";
 import { getTestimonials } from "@/server/loaders/reviews";
@@ -18,12 +18,12 @@ export default function HomePage() {
           <HeroPhoto />
         </Suspense>
         <div className="mx-auto flex w-full max-w-7xl flex-col items-center gap-5 px-4 pt-24 pb-16 text-center sm:pb-20">
-          <Logo className="size-20 drop-shadow-[0_0_24px_oklch(0.8_0.115_85/0.35)] sm:size-24" />
+          {/* The logo is the heading: its alt text, "DNA Stitches", is the page's h1. */}
           <h1
             id="hero-heading"
-            className="text-5xl font-medium tracking-[0.06em] text-foreground sm:text-7xl"
+            className="w-72 drop-shadow-[0_0_28px_oklch(0.8_0.115_85/0.25)] sm:w-[28rem]"
           >
-            DNA Stitches
+            <LogoLockup priority />
           </h1>
           <p className="font-script text-3xl text-gold-soft sm:text-4xl">According to Ur DNA</p>
           <span
