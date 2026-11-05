@@ -19,6 +19,7 @@ export interface AccountProfile {
   email: string;
   name: string | null;
   phone: string | null;
+  smsReminders: boolean;
   addresses: AccountAddress[];
 }
 
@@ -41,6 +42,7 @@ export async function getAccountProfile(db: Db, userId: string): Promise<Account
       email: true,
       name: true,
       phone: true,
+      smsReminders: true,
       addresses: { select: addressSelect, orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }] },
     },
   });
@@ -59,7 +61,7 @@ export async function getAccountProfile(db: Db, userId: string): Promise<Account
 export async function updateProfile(db: Db, userId: string, data: Profile) {
   await db.user.update({
     where: { id: userId },
-    data: { name: data.name, phone: data.phone ?? null },
+    data: { name: data.name, phone: data.phone ?? null, smsReminders: data.smsReminders },
   });
 }
 

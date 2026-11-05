@@ -212,8 +212,8 @@ test.describe("Consultation scheduler (US-F1, US-F2)", () => {
     await expect(page.getByTestId("appointment-status")).toHaveText("Confirmed");
     const reminders = page.getByRole("list", { name: "Reminder emails" });
     await expect(reminders.getByRole("listitem")).toHaveCount(2);
-    await expect(reminders.getByText(/^48 h before/)).toBeVisible();
-    await expect(reminders.getByText(/^3 h before/)).toBeVisible();
+    await expect(reminders.getByText(/^Email, 48 h before/)).toBeVisible();
+    await expect(reminders.getByText(/^Email, 3 h before/)).toBeVisible();
     await expectNoA11yViolations(page);
 
     // Cancelling removes the pending reminders (AC2).

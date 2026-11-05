@@ -29,17 +29,25 @@ test.describe("US-E1 sign in and profile", () => {
 
     const details = page.getByRole("region", { name: "Your details" });
     await details.getByLabel("Name").fill("Ada Obi");
-    await details.getByLabel("Phone").fill("12345");
+    await details.getByLabel("Phone", { exact: true }).fill("12345");
     await details.getByRole("button", { name: "Save profile" }).click();
     await expect(details.getByText(/Enter a valid Nigerian mobile number/)).toBeVisible();
     await expect(details.getByLabel("Name")).toHaveValue("Ada Obi");
 
-    await details.getByLabel("Phone").fill("+234 803 123 4567");
+    // Text reminders (v1.2 US-G2) need a phone number.
+    const texts = details.getByRole("checkbox", { name: /Text me reminders/ });
+    await details.getByLabel("Phone", { exact: true }).fill("");
+    await texts.check();
+    await details.getByRole("button", { name: "Save profile" }).click();
+    await expect(details.getByText("Add your phone number to get text reminders")).toBeVisible();
+
+    await details.getByLabel("Phone", { exact: true }).fill("+234 803 123 4567");
     await details.getByRole("button", { name: "Save profile" }).click();
     await expect(details.getByText("Profile saved.")).toBeVisible();
     await page.reload();
     await expect(details.getByLabel("Name")).toHaveValue("Ada Obi");
-    await expect(details.getByLabel("Phone")).toHaveValue("0803 123 4567");
+    await expect(details.getByLabel("Phone", { exact: true })).toHaveValue("0803 123 4567");
+    await expect(texts).toBeChecked();
 
     const addressForm = page
       .locator("form")

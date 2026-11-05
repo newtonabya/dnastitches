@@ -161,7 +161,10 @@ async function Detail({ params }: Pick<PageProps<"/admin/appointments/[id]">, "p
             <ul className="flex flex-col gap-1 text-sm" aria-label="Reminder emails">
               {reminders.map((r) => (
                 <li key={r.id}>
-                  <span className="font-medium">{r.offsetMinutes / 60} h before</span> ·{" "}
+                  <span className="font-medium">
+                    {r.channel === "SMS" ? "Text" : "Email"}, {r.offsetMinutes / 60} h before
+                  </span>{" "}
+                  ·{" "}
                   {r.sentAt
                     ? `sent ${reminderTime.format(r.sentAt)}`
                     : r.skippedAt
@@ -174,7 +177,8 @@ async function Detail({ params }: Pick<PageProps<"/admin/appointments/[id]">, "p
             </ul>
           )}
           <p className="text-xs text-muted-foreground">
-            Fittings and pickups get email reminders 48 hours and 3 hours before.
+            Fittings and pickups get email reminders 48 hours and 3 hours before, plus texts for
+            customers who opted in on their profile.
           </p>
         </Section>
       ) : null}

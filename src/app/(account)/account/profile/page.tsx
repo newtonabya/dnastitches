@@ -50,6 +50,7 @@ async function ProfileContent() {
           email={profile.email}
           name={profile.name}
           phone={profile.phone}
+          smsReminders={profile.smsReminders}
           action={updateProfileAction}
         />
       </section>

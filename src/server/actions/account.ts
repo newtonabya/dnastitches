@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { syncUserReminders } from "@/server/data/reminders";
 import { addressIdSchema, addressSchema } from "@/lib/validators/address";
 import { fieldErrors } from "@/lib/validators/fields";
 import { profileSchema } from "@/lib/validators/profile";
@@ -29,9 +30,12 @@ export async function updateProfileAction(
   const parsed = profileSchema.safeParse({
     name: formData.get("name"),
     phone: formData.get("phone") ?? undefined,
+    smsReminders: formData.get("smsReminders"),
   });
   if (!parsed.success) return { ok: false, fieldErrors: fieldErrors(parsed.error) };
   await account.updateProfile(prisma, userId, parsed.data);
+  // Text opt-in or phone changed: add or remove text reminders for upcoming appointments.
+  await syncUserReminders(prisma, userId, new Date());
   revalidatePath(PROFILE_PATH);
   return { ok: true, message: "Profile saved." };
 }

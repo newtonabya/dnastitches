@@ -100,7 +100,7 @@
 |---|---|---|
 | **MVP (v1.0)** | Auth, RTW shop (browse, detail, Paystack checkout, pickup or delivery), sold-out → custom upsell, custom request form with uploads, swatches & measurements, admin pipeline + client profile, custom-order quotes with Paystack deposit and balance payments, My Wardrobe progress, notify-me list. | A, B, C, D, E (core) |
 | **v1.1** | Consultation scheduler, automated fitting reminders (email), reviews. | F, G, H |
-| **v1.2+** | SMS/WhatsApp reminders, analytics dashboard, restock auto-notify (built: US-D4), courier API integration. | D |
+| **v1.2+** | SMS/WhatsApp reminders (built: US-G2), analytics dashboard, restock auto-notify (built: US-D4), courier API integration. | D, G |
 
 Each user story below is tagged **[MVP]**, **[v1.1]**, or **[v1.2]**.
 
@@ -212,7 +212,7 @@ enum NotificationRequestType {
 | **Appointment** | `id`, `userId`, `customOrderId?`, `type`, `mode` (`IN_STUDIO`\|`VIDEO`), `status`, `startsAt`, `endsAt`, `notes?` (from the customer), `adminNotes?` (private) | [v1.1] No two active (`REQUESTED`/`CONFIRMED`) appointments may overlap: one studio calendar. |
 | **AvailabilityRule** | `id`, `weekday` (0 = Sunday), `startMinute`, `endMinute`, `isActive` | [v1.1] Weekly booking hours in `STUDIO_TIMEZONE`; several per day allowed. |
 | **BlackoutDate** | `id`, `date` (studio-local, unique), `reason?` | [v1.1] No bookings that day; existing appointments are kept. |
-| **Reminder** | `id`, `appointmentId`, `channel` (`EMAIL`), `offsetMinutes`, `sendAt`, `sentAt?`, `skippedAt?`, `attempts`, `lockedUntil?`, `error?` | [v1.1] Processed by a scheduled job. Unique on (`appointmentId`, `offsetMinutes`); claimed before sending so it goes out at most once. |
+| **Reminder** | `id`, `appointmentId`, `channel` (`EMAIL`\|`SMS`), `offsetMinutes`, `sendAt`, `sentAt?`, `skippedAt?`, `attempts`, `lockedUntil?`, `error?` | [v1.1] Processed by a scheduled job. Unique on (`appointmentId`, `channel`, `offsetMinutes`); claimed before sending so it goes out at most once. |
 | **Review** | `id`, `userId`, `productId?`, `customOrderId?`, `rating` (1–5), `body`, `displayName`, `isApproved`, `moderatedAt?`, `createdAt` | [v1.1] Exactly one of `productId`/`customOrderId` must be set. Pending until moderated; hidden = moderated and not approved (D-20). |
 | **NotificationRequest** | `id`, `email`, `userId?`, `productId?`, `type`, `createdAt`, `notifiedAt?` | Unique on (`email`, `productId`, `type`). |
 
@@ -571,6 +571,20 @@ Gates (enforced server-side):
 - The 15-minute trigger is a scheduled GitHub Actions workflow by default, because Vercel Cron more often than daily needs the Pro plan. Vercel Cron works too (see README).
 ---
 
+#### US-G2 · Text reminders (SMS / WhatsApp) **[v1.2]**
+> As a **customer**, I can choose to also get fitting and pickup reminders by text.
+
+**Acceptance Criteria**
+1. On `/account/profile` I can opt in to text reminders; opting in requires a phone number.
+2. When opted in, I get a text at 48 h and 3 h before each `FITTING` and `PICKUP` appointment, in addition to the emails (US-G1). The text names the appointment, its studio-local day and time, and where to change it.
+3. Opting out (or removing my phone number) removes pending texts for my upcoming appointments.
+4. Each text is sent at most once, failures are recorded and retried, and overdue reminders are superseded per channel, exactly as for emails (US-G1 AC3–AC4).
+
+**Definition of Done**
+- [ ] `ReminderChannel.SMS`; `User.smsReminders`; the reminder unique key includes the channel.
+- [ ] `SmsProvider` interface with a Termii implementation (`TERMII_API_KEY`, `TERMII_SENDER_ID`, `TERMII_CHANNEL` = `dnd` | `generic` | `whatsapp`); without a key, texts are logged in development and skipped with a visible reason in production.
+- [ ] Unit tests for the provider and message; integration tests for planning, opt-out, sending and skipping.
+
 ### Epic H — Reviews **[v1.1]**
 
 #### US-H1 · Leave a review
@@ -703,6 +717,9 @@ MIN_LEAD_TIME_DAYS=14
 STUDIO_ADDRESS=           # shown at checkout and in appointment emails
 STUDIO_HOURS=
 CONSULTATION_MINUTES=60   # v1.1: booked consultation length (= slot length)
+TERMII_API_KEY=           # v1.2: text reminders (optional; set with TERMII_SENDER_ID)
+TERMII_SENDER_ID=
+TERMII_CHANNEL=dnd        # dnd | generic | whatsapp
 APPOINTMENTS_AUTO_CONFIRM=false  # v1.1: true books straight to CONFIRMED
 ```
 
@@ -860,6 +877,7 @@ None outstanding. All questions were resolved on 2026-11-01 (D-6 to D-13). New q
 | D-20 | **Reviews:** the customer chooses the public `displayName` (default: first name and last initial); emails and private custom-request titles are never shown publicly; home-page testimonials are approved 4–5 star reviews. Reviews can't be edited after submitting. | Privacy, and keeping moderation simple. |
 | D-21 | **Security baseline:** security headers on every response (no framing, nosniff, HSTS, referrer and permissions policies); constant-time `CRON_SECRET` checks; `pnpm audit` clean. A full Content-Security-Policy is deferred (it needs per-request nonces). | Cheap, high-value protections for launch. |
 | D-22 | **Restock emails are automatic; similar-fabric ones aren't** (US-D4). A restock is a clear event (the piece is published and in stock), so those requests are emailed on save. "A similar fabric became available" has no such event, so the owner follows those up from the CSV export. | Avoids emailing people about the wrong thing. |
+| D-23 | **Text reminders go through Termii, opt-in only** (US-G2). One API covers SMS (including the DND route that reaches numbers on Do-Not-Disturb) and WhatsApp, selected by `TERMII_CHANNEL`. Texts are in addition to emails, never instead of them. The `SmsProvider` interface leaves room for another provider (e.g. Twilio). | Nigeria-first provider and cost; explicit consent for texts. |
 
 ---
 

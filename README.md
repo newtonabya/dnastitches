@@ -11,7 +11,7 @@ truth** for product behaviour, data model and architecture.
 - **Customer side:** sign-in and profile (US-E1); the shop gallery, product detail and notify-me (US-A1, A2, D2); the custom journey (US-A3, B1, B2, B3); Paystack checkout for ready-to-wear (US-A4); online deposits and balances (US-C4); My Wardrobe (US-D1); defect repair requests (US-D3); booking consultations (US-F1); fitting and pickup reminder emails (US-G1); reviews (US-H1).
 - **Admin side:** the order pipeline and order detail (US-C1), client profiles (US-C2), catalog management (US-C3), the notify-me CSV export (US-D2), delivery zones (D-12), quotes and offline payments (US-C4), shop orders, repair requests (US-D3), appointments with booking hours (US-F2), and review approval (US-H1).
 
-v1.2 so far: restock emails (US-D4). Still on the roadmap (`PRD.md` §4): SMS/WhatsApp reminders, an analytics dashboard and a courier integration.
+v1.2 so far: restock emails (US-D4) and SMS/WhatsApp reminders (US-G2). Still on the roadmap (`PRD.md` §4): an analytics dashboard and a courier integration.
 
 ## Stack
 
@@ -72,7 +72,8 @@ missing or malformed variable stops `next dev` / `next build` with a clear messa
   `RESEND_API_KEY`, `EMAIL_FROM`, `NEXT_PUBLIC_SITE_URL`.
 - **Optional / defaulted:** `AUTH_GOOGLE_ID` + `AUTH_GOOGLE_SECRET` (set both or neither),
   `CRON_SECRET`, `STUDIO_ADDRESS` and `STUDIO_HOURS` (shown at checkout for pickup),
-  `CONSULTATION_MINUTES=60`, `APPOINTMENTS_AUTO_CONFIRM=false`,
+  `CONSULTATION_MINUTES=60`, `APPOINTMENTS_AUTO_CONFIRM=false`, `TERMII_API_KEY` +
+  `TERMII_SENDER_ID` (set both or neither) and `TERMII_CHANNEL=dnd`,
   `DEPOSIT_PERCENT=50`, `REPAIR_WINDOW_DAYS=7`, `STUDIO_TIMEZONE=Africa/Lagos`,
   `DEFAULT_CURRENCY=NGN`, `MIN_LEAD_TIME_DAYS=14`.
 
@@ -132,6 +133,22 @@ Something has to call it every 15 minutes. Pick one:
 - **Vercel Cron (Pro plan):** add `{ "path": "/api/cron/reminders", "schedule": "*/15 * * * *" }`
   to `crons` in `vercel.json`. The Hobby plan only allows daily crons, which is too rare for the
   3-hour reminder.
+
+### Text reminders (SMS / WhatsApp)
+
+Customers can tick **Text me reminders before fittings and pickups** on their profile (this needs
+a phone number). They then also get a short text 48 hours and 3 hours before each fitting or
+pickup, alongside the emails, through the same at-most-once reminder job. Turning it off removes
+any pending texts. Texts go through [Termii](https://termii.com) (Nigeria):
+
+1. Create a Termii account, fund it, and register a **sender ID** (e.g. `DNAStitches`). The DND
+   route needs the sender ID approved.
+2. In Vercel, set `TERMII_API_KEY`, `TERMII_SENDER_ID` and, optionally, `TERMII_CHANNEL`: `dnd`
+   (default; reaches numbers on Do-Not-Disturb), `generic`, or `whatsapp` (after setting up
+   WhatsApp in Termii).
+
+Without a key, texts are printed in the `pnpm dev` terminal in development and skipped in
+production. Each reminder's admin page shows why ("text messages aren't set up").
 
 ### Restock emails
 

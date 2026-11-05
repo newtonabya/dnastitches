@@ -1,19 +1,36 @@
 import { addressSchema } from "@/lib/validators/address";
 import { checkbox, emailAddress, fieldErrors } from "@/lib/validators/fields";
 import { notificationRequestSchema } from "@/lib/validators/notification-request";
-import { profileSchema } from "@/lib/validators/profile";
+import { SMS_NEEDS_PHONE, profileSchema } from "@/lib/validators/profile";
 
 describe("profileSchema (US-E1 AC4)", () => {
   it("trims the name and normalises phone to +234", () => {
     expect(profileSchema.parse({ name: "  Ada  ", phone: "0803 123 4567" })).toEqual({
       name: "Ada",
       phone: "+2348031234567",
+      smsReminders: false,
     });
   });
 
   it("phone is optional (empty string allowed)", () => {
-    expect(profileSchema.parse({ name: "Ada", phone: "" })).toEqual({ name: "Ada" });
-    expect(profileSchema.parse({ name: "Ada" })).toEqual({ name: "Ada" });
+    expect(profileSchema.parse({ name: "Ada", phone: "" })).toEqual({
+      name: "Ada",
+      smsReminders: false,
+    });
+    expect(profileSchema.parse({ name: "Ada" })).toEqual({ name: "Ada", smsReminders: false });
+  });
+
+  it("text reminders need a phone number (v1.2 US-G2)", () => {
+    expect(
+      profileSchema.parse({ name: "Ada", phone: "08031234567", smsReminders: "on" }).smsReminders,
+    ).toBe(true);
+    expect(
+      profileSchema.safeParse({ name: "Ada", smsReminders: "on" }).error?.issues[0],
+    ).toMatchObject({
+      path: ["smsReminders"],
+      message: SMS_NEEDS_PHONE,
+    });
+    expect(profileSchema.parse({ name: "Ada", smsReminders: null }).smsReminders).toBe(false);
   });
 
   it("rejects an empty name and an invalid phone with field messages", () => {

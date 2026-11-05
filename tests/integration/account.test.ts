@@ -48,13 +48,18 @@ const defaults = async (userId: string) =>
 
 describe("account data (US-E1 AC4)", () => {
   it("updates name and phone", async () => {
-    await updateProfile(prisma, alice, { name: "Alice", phone: "+2348031234567" });
+    await updateProfile(prisma, alice, {
+      name: "Alice",
+      phone: "+2348031234567",
+      smsReminders: true,
+    });
     expect(await getAccountProfile(prisma, alice)).toMatchObject({
       name: "Alice",
       phone: "+2348031234567",
+      smsReminders: true,
       addresses: [],
     });
-    await updateProfile(prisma, alice, { name: "Alice" });
+    await updateProfile(prisma, alice, { name: "Alice", smsReminders: false });
     expect((await getAccountProfile(prisma, alice))?.phone).toBeNull();
   });
 

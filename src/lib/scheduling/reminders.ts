@@ -57,3 +57,8 @@ export function decideReminder(
   if (dueSiblingOffsets.some((o) => o < reminder.offsetMinutes)) return "SKIP_SUPERSEDED";
   return "SEND";
 }
+
+/** Text reminders (v1.2, US-G2) need both the customer's opt-in and a phone number. */
+export function wantsTextReminders(user: { smsReminders: boolean; phone: string | null }): boolean {
+  return user.smsReminders && Boolean(user.phone);
+}

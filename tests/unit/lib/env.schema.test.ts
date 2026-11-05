@@ -50,6 +50,20 @@ describe("parseEnv", () => {
     );
   });
 
+  it("parses text-reminder settings (v1.2): key and sender ID together, channel default dnd", () => {
+    expect(parseEnv(base)).toMatchObject({ TERMII_CHANNEL: "dnd" });
+    expect(
+      parseEnv({
+        ...base,
+        TERMII_API_KEY: "k",
+        TERMII_SENDER_ID: "DNA",
+        TERMII_CHANNEL: "whatsapp",
+      }),
+    ).toMatchObject({ TERMII_API_KEY: "k", TERMII_SENDER_ID: "DNA", TERMII_CHANNEL: "whatsapp" });
+    expect(() => parseEnv({ ...base, TERMII_API_KEY: "k" })).toThrow(/TERMII_SENDER_ID/);
+    expect(() => parseEnv({ ...base, TERMII_CHANNEL: "carrier-pigeon" })).toThrow(/TERMII_CHANNEL/);
+  });
+
   it("requires DATABASE_URL and AUTH_SECRET everywhere", () => {
     expect(() => parseEnv({ AUTH_SECRET: "x" })).toThrow(EnvValidationError);
     expect(() => parseEnv({ DATABASE_URL: base.DATABASE_URL })).toThrow(/AUTH_SECRET/);
