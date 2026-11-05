@@ -7,12 +7,12 @@ test.describe("smoke", () => {
 
     await expect(page).toHaveTitle(/DNA Stitches/);
     await expect(page.getByRole("heading", { level: 1, name: "DNA Stitches" })).toBeVisible();
-    await expect(page.getByText("Tailored to your DNA.")).toBeVisible();
-    await expect(page.getByRole("link", { name: "Shop 1-of-1 pieces" })).toHaveAttribute(
+    await expect(page.getByText("According to Ur DNA")).toBeVisible();
+    await expect(page.getByRole("link", { name: /^Shop Ready-to-Wear/ })).toHaveAttribute(
       "href",
       "/shop",
     );
-    await expect(page.getByRole("link", { name: "Start a custom piece" })).toHaveAttribute(
+    await expect(page.getByRole("link", { name: /^Bespoke Tailoring/ })).toHaveAttribute(
       "href",
       "/custom",
     );
