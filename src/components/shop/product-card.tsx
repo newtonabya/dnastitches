@@ -22,14 +22,14 @@ export function ProductCard({
         href={`/shop/${product.slug}`}
         className="block rounded-lg outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
       >
-        <div className="relative aspect-[4/5] overflow-hidden rounded-lg bg-muted">
+        <div className="relative aspect-[3/4] overflow-hidden rounded-md border border-primary/15 bg-muted">
           {product.image ? (
             <Image
               src={product.image.url}
               alt={product.image.alt}
               fill
               priority={priority}
-              sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+              sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, 50vw"
               className={cn(
                 "object-cover transition-transform duration-300 group-hover:scale-[1.02]",
                 soldOut && "grayscale",
@@ -47,11 +47,21 @@ export function ProductCard({
               className="absolute inset-0 bg-background/40"
             />
           ) : null}
-          <StatusBadge status={product.inventoryStatus} className="absolute top-3 left-3" />
+          <StatusBadge
+            status={product.inventoryStatus}
+            className="absolute top-2 left-2 sm:top-3 sm:left-3"
+          />
         </div>
-        <div className="mt-3 flex items-start justify-between gap-3">
-          <h2 className="font-medium group-hover:underline">{product.name}</h2>
-          <p className={cn("shrink-0 tabular-nums", soldOut && "text-muted-foreground")}>
+        <div className="mt-3 flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+          <h2 className="font-serif text-lg leading-tight font-medium group-hover:underline sm:text-xl">
+            {product.name}
+          </h2>
+          <p
+            className={cn(
+              "shrink-0 text-sm tabular-nums sm:text-base",
+              soldOut ? "text-muted-foreground" : "text-primary",
+            )}
+          >
             {formatNGN(product.priceKobo)}
           </p>
         </div>

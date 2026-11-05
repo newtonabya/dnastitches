@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, Geist, Geist_Mono, Pinyon_Script } from "next/font/google";
 
+import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
 import { SiteHeader } from "@/components/layout/site-header";
 
 import "./globals.css";
@@ -37,6 +38,14 @@ export const metadata: Metadata = {
   },
   description:
     "1-of-1 ready-to-wear pieces and made-to-measure custom tailoring from the DNA Stitches atelier.",
+  appleWebApp: { title: "DNA Stitches", statusBarStyle: "black-translucent" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0e0d0b",
+  colorScheme: "dark",
+  // Lets the bottom tab bar sit above the iPhone home indicator (safe-area insets).
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -46,7 +55,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       style={{ colorScheme: "dark" }}
       className={`dark ${geistSans.variable} ${geistMono.variable} ${display.variable} ${script.variable} h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col">
+      <body className="flex min-h-full flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] sm:pb-0">
         <a
           href="#content"
           className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded focus:bg-background focus:p-2"
@@ -57,6 +66,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <div id="content" className="flex flex-1 flex-col">
           {children}
         </div>
+        <MobileTabBar />
       </body>
     </html>
   );
