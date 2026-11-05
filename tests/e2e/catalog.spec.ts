@@ -86,6 +86,18 @@ test.describe("US-C3 catalog management", () => {
     const csv = await readFile((await download.path())!, "utf8");
     expect(csv).toContain("email,name,type,requested_at,notified_at");
     expect(csv).toContain(`${email},,RESTOCK,`);
+
+    // v1.2 restock auto-notify (US-D4): restocking emails the waiting customer, once.
+    const restock = page.getByRole("form", { name: "Edit product" });
+    await restock.getByLabel("Quantity in stock").fill("1");
+    await restock.getByRole("button", { name: "Save product" }).click();
+    await expect(
+      restock.getByText("Saved. Emailing 1 person who asked to hear when it's back."),
+    ).toBeVisible();
+    await page.reload();
+    await expect(page.getByText(/· emailed /)).toBeVisible();
+    await restock.getByRole("button", { name: "Save product" }).click();
+    await expect(restock.getByText("Saved.", { exact: true })).toBeVisible();
   });
 
   test("edit a swatch and a portfolio item; changes show on public pages", async ({ page }) => {

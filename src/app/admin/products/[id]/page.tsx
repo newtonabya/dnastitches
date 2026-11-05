@@ -130,11 +130,19 @@ async function EditProduct({
                   <span className="text-xs text-muted-foreground">
                     {r.type === "RESTOCK" ? "Restock / similar piece" : "Similar fabric"} ·{" "}
                     {dateFormat.format(r.createdAt)}
+                    {r.notifiedAt ? ` · emailed ${dateFormat.format(r.notifiedAt)}` : ""}
                   </span>
                 </li>
               ))}
             </ul>
           )}
+          {requests.some((r) => r.type === "RESTOCK") ? (
+            <p className="text-xs text-muted-foreground">
+              Restock requests are emailed automatically, once, when you save this piece while
+              it&apos;s published and in stock. Similar-fabric requests are for you to follow up:
+              export them as CSV.
+            </p>
+          ) : null}
         </section>
       </aside>
     </div>
