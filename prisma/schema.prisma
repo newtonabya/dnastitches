@@ -128,6 +128,17 @@ enum RepairStatus {
   REJECTED
 }
 
+/// Courier shipments (v1.2, US-D5). Provider statuses are mapped onto these.
+enum ShipmentStatus {
+  BOOKED
+  PICKED_UP
+  IN_TRANSIT
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+  FAILED
+}
+
 enum ReminderChannel {
   EMAIL
   SMS // text message: SMS or WhatsApp, per TERMII_CHANNEL (v1.2)
@@ -155,6 +166,7 @@ model User {
   addresses            Address[]
   orders               Order[]
   payments             Payment[]              @relation("PaymentUser")
+  bookedShipments      Shipment[]             @relation("ShipmentBookedBy")
   recordedPayments     Payment[]              @relation("PaymentRecordedBy")
   customOrders         CustomOrder[]
   statusChanges        CustomOrderStatusLog[]
@@ -343,6 +355,8 @@ model Order {
   deliveryZoneId          String?
   finalSaleAcknowledgedAt DateTime
   fulfilledAt             DateTime? // starts the defect window (US-A4 AC8, US-D3)
+  /// Courier whose live price set deliveryFeeKobo at checkout; null = flat zone fee (US-D5).
+  deliveryQuotedBy        String?
   createdAt               DateTime          @default(now())
   updatedAt               DateTime          @updatedAt
 
@@ -352,6 +366,7 @@ model Order {
   deliveryZone   DeliveryZone?   @relation(fields: [deliveryZoneId], references: [id], onDelete: SetNull)
   payments       Payment[]
   repairRequests RepairRequest[]
+  shipments      Shipment[]
 
   @@index([userId])
   @@index([productId])
@@ -461,6 +476,7 @@ model CustomOrder {
   appointments       Appointment[]
   payments           Payment[]
   reviews            Review[]
+  shipments          Shipment[]
   repairRequests     RepairRequest[]
 
   @@index([userId])
@@ -486,13 +502,13 @@ model CustomOrderStatusLog {
 /// Only allowed within REPAIR_WINDOW_DAYS (default 7) of handover (D-13).
 /// Exactly one of `orderId` / `customOrderId` is set (enforced in application code).
 model RepairRequest {
-  id            String       @id @default(cuid())
-  userId        String
-  orderId       String?
-  customOrderId String?
-  description   String
-  photoUrls     String[]
-  status        RepairStatus @default(OPEN)
+  id              String       @id @default(cuid())
+  userId          String
+  orderId         String?
+  customOrderId   String?
+  description     String
+  photoUrls       String[]
+  status          RepairStatus @default(OPEN)
   adminNotes      String? // private — never shown to the customer
   rejectionReason String? // shown to the customer when status = REJECTED (US-D3 AC3)
   resolvedAt      DateTime? // set when RESOLVED or REJECTED
@@ -535,6 +551,39 @@ model Appointment {
   @@index([startsAt])
   @@index([customOrderId])
   @@index([status, startsAt])
+}
+
+/// A courier delivery for a shop order or a custom order (v1.2, US-D5). Exactly one of
+/// `orderId` / `customOrderId` is set (enforced in application code). A cancelled or
+/// failed shipment can be followed by a new one; at most one active per order (app code).
+model Shipment {
+  id                 String         @id @default(cuid())
+  orderId            String?
+  customOrderId      String?
+  provider           String // "sendbox" | "dev"
+  providerShipmentId String
+  trackingCode       String         @unique
+  trackingUrl        String?
+  courierName        String
+  feeKobo            Int // what the courier charges DNA Stitches
+  status             ShipmentStatus @default(BOOKED)
+  /// The provider's own status code, e.g. Sendbox "drafted" (booked but on hold until the
+  /// wallet is topped up). Shown to the admin.
+  providerStatus     String?
+  /// Tracking history, oldest first: [{ at, status, description }].
+  events             Json           @default("[]")
+  bookedById         String?
+  deliveredAt        DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  order       Order?       @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  customOrder CustomOrder? @relation(fields: [customOrderId], references: [id], onDelete: Restrict)
+  bookedBy    User?        @relation("ShipmentBookedBy", fields: [bookedById], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([customOrderId])
+  @@index([status, updatedAt])
 }
 
 /// Weekly studio hours for bookings (US-F1), in STUDIO_TIMEZONE local time.
@@ -583,17 +632,17 @@ model Reminder {
 
 /// Exactly one of `productId` / `customOrderId` is set (enforced in application code).
 model Review {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   userId        String
   productId     String?
   customOrderId String?
   rating        Int // 1–5
   body          String
-  displayName   String   @default("") // the name shown publicly, chosen by the customer
-  isApproved    Boolean  @default(false)
+  displayName   String    @default("") // the name shown publicly, chosen by the customer
+  isApproved    Boolean   @default(false)
   moderatedAt   DateTime? // null = waiting for the owner; set + !isApproved = hidden
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   product     Product?     @relation(fields: [productId], references: [id], onDelete: SetNull)

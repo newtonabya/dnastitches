@@ -113,6 +113,26 @@ export const envSchema = z
     TERMII_API_KEY: optionalString,
     TERMII_SENDER_ID: optionalString,
     TERMII_CHANNEL: z.enum(["dnd", "generic", "whatsapp"]).optional().default("dnd"),
+    // Courier (v1.2, US-D5): Sendbox. Without a token the site uses the flat delivery-zone
+    // fees and courier booking is off. The origin is where the courier picks parcels up.
+    SENDBOX_API_KEY: optionalString,
+    SENDBOX_BASE_URL: optionalString.pipe(z.url().optional()),
+    COURIER_ORIGIN_STREET: optionalString,
+    COURIER_ORIGIN_CITY: optionalString,
+    COURIER_ORIGIN_STATE: optionalString,
+    COURIER_ORIGIN_PHONE: optionalString,
+    // Weight of a typical parcel (one garment, packed), in kilograms.
+    COURIER_PARCEL_WEIGHT_KG: z
+      .string()
+      .trim()
+      .optional()
+      .transform((v) => (v === undefined || v === "" ? 1 : Number(v)))
+      .pipe(z.number().positive().max(50)),
+    // Development only: a simulated courier, for trying booking and tracking locally.
+    COURIER_DEV: z
+      .enum(["true", "false", ""])
+      .optional()
+      .transform((v) => v === "true"),
     APPOINTMENTS_AUTO_CONFIRM: z
       .enum(["true", "false", ""])
       .optional()
@@ -125,6 +145,22 @@ export const envSchema = z
         path: ["TERMII_SENDER_ID"],
         message: "TERMII_API_KEY and TERMII_SENDER_ID must be set together",
       });
+    }
+    if (env.SENDBOX_API_KEY) {
+      for (const key of [
+        "COURIER_ORIGIN_STREET",
+        "COURIER_ORIGIN_CITY",
+        "COURIER_ORIGIN_STATE",
+        "COURIER_ORIGIN_PHONE",
+      ] as const) {
+        if (!env[key]) {
+          ctx.addIssue({
+            code: "custom",
+            path: [key],
+            message: "is required when SENDBOX_API_KEY is set (the courier's pickup address)",
+          });
+        }
+      }
     }
     if (env.NODE_ENV !== "production") return;
     for (const key of REQUIRED_IN_PRODUCTION) {

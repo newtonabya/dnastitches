@@ -50,6 +50,24 @@ describe("parseEnv", () => {
     );
   });
 
+  it("parses courier settings (v1.2): a Sendbox token needs the pickup address", () => {
+    expect(parseEnv(base)).toMatchObject({ COURIER_PARCEL_WEIGHT_KG: 1, COURIER_DEV: false });
+    const origin = {
+      COURIER_ORIGIN_STREET: "12 Admiralty Way",
+      COURIER_ORIGIN_CITY: "Lekki",
+      COURIER_ORIGIN_STATE: "Lagos",
+      COURIER_ORIGIN_PHONE: "+2348012345678",
+    };
+    expect(
+      parseEnv({ ...base, ...origin, SENDBOX_API_KEY: "tok", COURIER_PARCEL_WEIGHT_KG: "1.5" }),
+    ).toMatchObject({ SENDBOX_API_KEY: "tok", COURIER_PARCEL_WEIGHT_KG: 1.5 });
+    expect(() => parseEnv({ ...base, SENDBOX_API_KEY: "tok" })).toThrow(/COURIER_ORIGIN_STREET/);
+    expect(() => parseEnv({ ...base, COURIER_PARCEL_WEIGHT_KG: "0" })).toThrow(
+      /COURIER_PARCEL_WEIGHT_KG/,
+    );
+    expect(() => parseEnv({ ...base, SENDBOX_BASE_URL: "not a url" })).toThrow(/SENDBOX_BASE_URL/);
+  });
+
   it("parses text-reminder settings (v1.2): key and sender ID together, channel default dnd", () => {
     expect(parseEnv(base)).toMatchObject({ TERMII_CHANNEL: "dnd" });
     expect(
