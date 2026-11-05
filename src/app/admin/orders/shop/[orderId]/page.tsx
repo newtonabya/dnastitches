@@ -20,7 +20,10 @@ const STATUS = {
 } as const;
 
 /** US-D5: a ready-to-wear order's delivery: courier booking and tracking. */
-export default function ShopOrderPage({ params }: PageProps<"/admin/orders/shop/[orderId]">) {
+export default function ShopOrderPage({
+  params,
+  searchParams,
+}: PageProps<"/admin/orders/shop/[orderId]">) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8">
       <Link href="/admin/orders?view=shop" className="text-sm underline">
@@ -33,15 +36,19 @@ export default function ShopOrderPage({ params }: PageProps<"/admin/orders/shop/
           </p>
         }
       >
-        <ShopOrder params={params} />
+        <ShopOrder params={params} searchParams={searchParams} />
       </Suspense>
     </main>
   );
 }
 
-async function ShopOrder({ params }: Pick<PageProps<"/admin/orders/shop/[orderId]">, "params">) {
+async function ShopOrder({
+  params,
+  searchParams,
+}: Pick<PageProps<"/admin/orders/shop/[orderId]">, "params" | "searchParams">) {
   await requireAdmin();
   const { orderId } = await params;
+  const { courier } = await searchParams;
   const order = await prisma.order.findUnique({
     where: { id: orderId },
     select: {
@@ -126,6 +133,7 @@ async function ShopOrder({ params }: Pick<PageProps<"/admin/orders/shop/[orderId
             <CourierPanel
               target={{ kind: "ORDER", id: order.id }}
               chargedKobo={order.deliveryFeeKobo}
+              notice={courier}
             />
           </Suspense>
         </section>

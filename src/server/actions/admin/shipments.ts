@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { prisma } from "@/lib/prisma";
 import { fieldErrors } from "@/lib/validators/fields";
@@ -18,10 +19,11 @@ const NO_COURIER = {
   formError: "Courier booking is off. Set SENDBOX_API_KEY to turn it on.",
 } as const;
 
+const targetPath = (target: ShipmentTarget) =>
+  target.kind === "ORDER" ? `/admin/orders/shop/${target.id}` : `/admin/orders/${target.id}`;
+
 function revalidateTarget(target: ShipmentTarget) {
-  revalidatePath(
-    target.kind === "ORDER" ? `/admin/orders/shop/${target.id}` : `/admin/orders/${target.id}`,
-  );
+  revalidatePath(targetPath(target));
   revalidatePath("/admin/orders");
 }
 
@@ -30,6 +32,7 @@ export async function bookShipmentAction(
   _prev: ActionResult | null,
   formData: FormData,
 ): Promise<ActionResult> {
+  // On success this redirects (see below) rather than returning a message.
   const admin = await getAdminForAction();
   if (!admin) return NO_ACCESS;
   const parsed = bookShipmentSchema.safeParse(Object.fromEntries(formData));
@@ -48,13 +51,10 @@ export async function bookShipmentAction(
 
   sendShippingEmail(result.shipmentId, "BOOKED");
   revalidateTarget(target);
-  return {
-    ok: true,
-    message:
-      result.providerStatus === "drafted"
-        ? `Booked (tracking ${result.trackingCode}), but on hold: top up your Sendbox wallet so the courier is dispatched.`
-        : `Courier booked. Tracking ${result.trackingCode}. The customer has been emailed.`,
-  };
+  // The booking form goes away once booked, so confirm with a banner on the page.
+  redirect(
+    `${targetPath(target)}?courier=${result.providerStatus === "drafted" ? "on-hold" : "booked"}`,
+  );
 }
 
 /** Ask the courier for the latest now, instead of waiting for the next automatic check. */

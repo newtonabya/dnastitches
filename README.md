@@ -11,7 +11,7 @@ truth** for product behaviour, data model and architecture.
 - **Customer side:** sign-in and profile (US-E1); the shop gallery, product detail and notify-me (US-A1, A2, D2); the custom journey (US-A3, B1, B2, B3); Paystack checkout for ready-to-wear (US-A4); online deposits and balances (US-C4); My Wardrobe (US-D1); defect repair requests (US-D3); booking consultations (US-F1); fitting and pickup reminder emails (US-G1); reviews (US-H1).
 - **Admin side:** the order pipeline and order detail (US-C1), client profiles (US-C2), catalog management (US-C3), the notify-me CSV export (US-D2), delivery zones (D-12), quotes and offline payments (US-C4), shop orders, repair requests (US-D3), appointments with booking hours (US-F2), and review approval (US-H1).
 
-v1.2 so far: restock emails (US-D4), SMS/WhatsApp reminders (US-G2) and the analytics dashboard at Admin → Analytics (US-C5). Still on the roadmap (`PRD.md` §4): a courier integration.
+v1.2: restock emails (US-D4), SMS/WhatsApp reminders (US-G2), the analytics dashboard at Admin → Analytics (US-C5) and courier delivery through Sendbox (US-D5). Every item on the `PRD.md` §4 roadmap is built.
 
 ## Stack
 
@@ -30,13 +30,14 @@ v1.2 so far: restock emails (US-D4), SMS/WhatsApp reminders (US-G2) and the anal
 
 ## Accounts you need
 
-| Service                                                           | Used for                                                                       | Needed for local dev?               |
-| ----------------------------------------------------------------- | ------------------------------------------------------------------------------ | ----------------------------------- |
-| [Neon](https://neon.tech) **or** [Supabase](https://supabase.com) | PostgreSQL (separate dev / preview / prod DBs or branches)                     | Yes, or run Postgres locally        |
-| [Paystack](https://paystack.com)                                  | Payments: use **test** keys (`sk_test_…`, `pk_test_…`)                         | Only when building checkout         |
-| [Resend](https://resend.com)                                      | Magic-link sign-in emails and transactional email (verify your sending domain) | Needed to actually sign in by email |
-| [Vercel](https://vercel.com)                                      | Hosting, preview deploys, Blob storage, Cron                                   | Only for deploys and uploads        |
-| [Google Cloud](https://console.cloud.google.com) _(optional)_     | Google OAuth sign-in                                                           | No                                  |
+| Service                                                           | Used for                                                                       | Needed for local dev?                |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------ |
+| [Neon](https://neon.tech) **or** [Supabase](https://supabase.com) | PostgreSQL (separate dev / preview / prod DBs or branches)                     | Yes, or run Postgres locally         |
+| [Paystack](https://paystack.com)                                  | Payments: use **test** keys (`sk_test_…`, `pk_test_…`)                         | Only when building checkout          |
+| [Resend](https://resend.com)                                      | Magic-link sign-in emails and transactional email (verify your sending domain) | Needed to actually sign in by email  |
+| [Vercel](https://vercel.com)                                      | Hosting, preview deploys, Blob storage, Cron                                   | Only for deploys and uploads         |
+| [Google Cloud](https://console.cloud.google.com) _(optional)_     | Google OAuth sign-in                                                           | No                                   |
+| [Sendbox](https://sendbox.co) _(optional)_                        | Courier: live delivery prices, booking and tracking (US-D5)                    | No (`COURIER_DEV=true` simulates it) |
 
 ## Getting started
 
@@ -73,7 +74,10 @@ missing or malformed variable stops `next dev` / `next build` with a clear messa
 - **Optional / defaulted:** `AUTH_GOOGLE_ID` + `AUTH_GOOGLE_SECRET` (set both or neither),
   `CRON_SECRET`, `STUDIO_ADDRESS` and `STUDIO_HOURS` (shown at checkout for pickup),
   `CONSULTATION_MINUTES=60`, `APPOINTMENTS_AUTO_CONFIRM=false`, `TERMII_API_KEY` +
-  `TERMII_SENDER_ID` (set both or neither) and `TERMII_CHANNEL=dnd`,
+  `TERMII_SENDER_ID` (set both or neither) and `TERMII_CHANNEL=dnd`, `SENDBOX_API_KEY` (with
+  `COURIER_ORIGIN_STREET`, `COURIER_ORIGIN_CITY`, `COURIER_ORIGIN_STATE` and
+  `COURIER_ORIGIN_PHONE`, which it requires), `SENDBOX_BASE_URL`, `COURIER_PARCEL_WEIGHT_KG=1`,
+  `COURIER_DEV` (development only),
   `DEPOSIT_PERCENT=50`, `REPAIR_WINDOW_DAYS=7`, `STUDIO_TIMEZONE=Africa/Lagos`,
   `DEFAULT_CURRENCY=NGN`, `MIN_LEAD_TIME_DAYS=14`.
 
@@ -191,6 +195,33 @@ Admins are never created through the UI (US-E1). Put your email in `ADMIN_EMAILS
 
 `pnpm test:e2e` starts its own dev server with `ADMIN_EMAILS` set to dedicated `e2e-admin-…`
 accounts, so your own admin email isn't used by the tests.
+
+### Courier delivery (Sendbox)
+
+With a Sendbox access token (`SENDBOX_API_KEY`), delivery works like this (US-D5):
+
+- **Checkout** charges the courier's cheapest live price for the customer's address. Prices are
+  cached for a few minutes, so the price shown is the price charged. If Sendbox has no price or
+  doesn't answer, checkout falls back to the delivery-zone fee.
+- **Booking:** on a paid shop order (Admin → Orders → Shop orders → Courier & tracking) or a
+  Ready, fully paid custom order (the Courier panel on its page), choose a delivery option and
+  press **Book courier**. The courier collects from `COURIER_ORIGIN_*` and the customer is
+  emailed the tracking number. Only one courier can be booked per order at a time.
+- **Tracking** updates every 15 minutes (the Reminders workflow calls `/api/cron/shipments`), and
+  sooner when Sendbox calls the webhook. **Check tracking now** asks immediately. When the
+  parcel is delivered, the shop order is marked fulfilled (starting the repair window) or the
+  custom order completed, and the customer is emailed.
+- **Wallet:** Sendbox charges your Sendbox wallet when you book. With too little in it, the
+  shipment is "on hold" (Sendbox `drafted`) and the panel says so; top up and it's dispatched.
+
+Without a token, checkout uses the zone fees and courier booking is off. For local development,
+`COURIER_DEV=true` gives a simulated courier: Lagos ₦3,000 / ₦6,000, elsewhere ₦6,500 / ₦13,000,
+and a booked parcel moves one step every two minutes. The end-to-end tests use it.
+
+Sendbox's webhook payload and signature aren't documented, so the webhook only prompts a fresh
+tracking lookup; it never trusts the body (D-25). Its URL is
+`https://<your-domain>/api/webhooks/sendbox?token=<token>`, sent automatically with each
+booking. The token is derived from `AUTH_SECRET`.
 
 ### Delivery zones (launch blocker)
 

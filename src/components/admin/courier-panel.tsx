@@ -27,9 +27,12 @@ const when = new Intl.DateTimeFormat("en-NG", {
 export async function CourierPanel({
   target,
   chargedKobo,
+  notice,
 }: {
   target: ShipmentTarget;
   chargedKobo: number | null;
+  /** From ?courier= after booking: "booked" or "on-hold". */
+  notice?: string | string[];
 }) {
   const provider = getCourierProvider();
   const settings = shipmentSettings();
@@ -50,8 +53,19 @@ export async function CourierPanel({
     }
   }
 
+  const latest = shipments[0];
   return (
     <div className="flex flex-col gap-4">
+      {notice === "booked" && latest ? (
+        <p role="status" className="rounded-md bg-muted p-3 text-sm">
+          Courier booked. Tracking {latest.trackingCode}. The customer has been emailed.
+        </p>
+      ) : notice === "on-hold" && latest ? (
+        <p role="status" className="rounded-md bg-muted p-3 text-sm">
+          Booked (tracking {latest.trackingCode}) but on hold at Sendbox: top up your Sendbox wallet
+          so the courier is dispatched. The customer has been emailed.
+        </p>
+      ) : null}
       {shipments.map((s) => (
         <ShipmentCard key={s.id} shipment={s} canRefresh={Boolean(provider)} />
       ))}

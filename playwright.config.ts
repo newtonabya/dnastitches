@@ -14,7 +14,7 @@ export const E2E_PROJECTS = ["chromium", "mobile"] as const;
 export const e2eAdminEmail = (project: string, slot: number) =>
   `e2e-admin-${project}-${slot}@example.com`;
 const E2E_ADMIN_EMAILS = E2E_PROJECTS.flatMap((p) =>
-  Array.from({ length: 16 }, (_, i) => i + 1).map((slot) => e2eAdminEmail(p, slot)),
+  Array.from({ length: 17 }, (_, i) => i + 1).map((slot) => e2eAdminEmail(p, slot)),
 ).join(",");
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://localhost:${PORT}`;
 
@@ -54,6 +54,9 @@ export default defineConfig({
           ADMIN_EMAILS: E2E_ADMIN_EMAILS,
           // Payments go through the built-in dev gateway (/dev/paystack), never Paystack.
           PAYSTACK_SECRET_KEY: "",
+          // The simulated courier (US-D5): live delivery prices and booking, no network.
+          COURIER_DEV: "true",
+          SENDBOX_API_KEY: "",
           // No floating dev-tools button over the app on mobile viewports.
           DISABLE_DEV_INDICATORS: "1",
         },

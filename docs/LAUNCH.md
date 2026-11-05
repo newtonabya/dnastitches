@@ -37,6 +37,7 @@ never point at the production database.
 | `STUDIO_TIMEZONE`                                        | `Africa/Lagos` (default)                                                  |
 | `CONSULTATION_MINUTES`, `APPOINTMENTS_AUTO_CONFIRM`      | Optional: 60 and `false` by default                                       |
 | `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`                   | Optional Google sign-in (set both or neither)                             |
+| `SENDBOX_API_KEY`, `COURIER_ORIGIN_*`                    | Optional courier delivery (step 4b)                                       |
 
 A missing required variable stops the build with a clear message.
 
@@ -61,15 +62,32 @@ A missing required variable stops the build with a clear message.
 The customer return URL is built from `NEXT_PUBLIC_SITE_URL`; there's nothing to set in Paystack
 for it.
 
+## 4b. Courier delivery (Sendbox, optional)
+
+Skip this to keep flat delivery-zone fees and arrange couriers yourself.
+
+- [ ] Create a [Sendbox](https://sendbox.co) business account and **fund your Sendbox wallet**.
+      Bookings are paid from it; with too little, a shipment waits "on hold".
+- [ ] On the Sendbox developer dashboard (developers.sendbox.co), create an app and copy its
+      **access token**. Leave its webhook URL empty: the site sends its own with each booking.
+- [ ] In Vercel, set `SENDBOX_API_KEY` to the token, plus the studio's pickup address:
+      `COURIER_ORIGIN_STREET`, `COURIER_ORIGIN_CITY`, `COURIER_ORIGIN_STATE` (e.g. `Lagos`) and
+      `COURIER_ORIGIN_PHONE` (e.g. `+2348012345678`). Optionally set `COURIER_PARCEL_WEIGHT_KG`
+      (default 1). Redeploy.
+- [ ] Check: at checkout, choosing delivery to a saved address shows a "Sendbox …" price.
+- [ ] After a real delivery order, book the courier from Admin → Orders → Shop orders →
+      Courier & tracking. Check the customer gets the "On its way" email. Tracking then
+      updates every 15 minutes (step 5).
+
 ## 5. Scheduled jobs
 
 - [ ] **Expired checkout holds:** `vercel.json` already schedules `/api/cron/release-reservations`
       daily. Vercel sends `CRON_SECRET` automatically.
-- [ ] **Fitting and pickup reminders:** in GitHub → Settings → Secrets and variables → Actions,
+- [ ] **Fitting and pickup reminders, and courier tracking:** in GitHub → Settings → Secrets and variables → Actions,
       add the **secret** `CRON_SECRET` (the same value as in Vercel) and the **variable**
       `SITE_URL` (`https://<your-domain>`).
 - [ ] Run the **Reminders** workflow once by hand (Actions tab → Reminders → Run workflow). It
-      should succeed and print `{"sent":0,…}`.
+      should succeed and print `{"sent":0,…}` (and, for tracking, `{"checked":0,…}`).
 - [ ] **Optional, text reminders:** create a [Termii](https://termii.com) account, fund it,
       register a sender ID, then set `TERMII_API_KEY` and `TERMII_SENDER_ID` in Vercel (and
       `TERMII_CHANNEL` if you want `generic` or `whatsapp` instead of `dnd`), and redeploy.

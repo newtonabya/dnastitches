@@ -44,7 +44,7 @@ const dateTime = new Intl.DateTimeFormat("en-NG", {
 const dateOnly = new Intl.DateTimeFormat("en-NG", { dateStyle: "long", timeZone: "Africa/Lagos" });
 
 /** US-C1 AC5 + admin side of US-C4: everything about one custom order. */
-export default function AdminOrderPage({ params }: PageProps<"/admin/orders/[id]">) {
+export default function AdminOrderPage({ params, searchParams }: PageProps<"/admin/orders/[id]">) {
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-8">
       <nav aria-label="Breadcrumb" className="text-sm text-muted-foreground">
@@ -59,15 +59,19 @@ export default function AdminOrderPage({ params }: PageProps<"/admin/orders/[id]
           </p>
         }
       >
-        <OrderDetail params={params} />
+        <OrderDetail params={params} searchParams={searchParams} />
       </Suspense>
     </main>
   );
 }
 
-async function OrderDetail({ params }: Pick<PageProps<"/admin/orders/[id]">, "params">) {
+async function OrderDetail({
+  params,
+  searchParams,
+}: Pick<PageProps<"/admin/orders/[id]">, "params" | "searchParams">) {
   await requireAdmin();
   const { id } = await params;
+  const { courier } = await searchParams;
   const [order, appointments] = await Promise.all([
     getAdminOrderDetail(prisma, id),
     listOrderAppointments(prisma, id),
@@ -298,6 +302,7 @@ async function OrderDetail({ params }: Pick<PageProps<"/admin/orders/[id]">, "pa
               <CourierPanel
                 target={{ kind: "CUSTOM_ORDER", id: order.id }}
                 chargedKobo={order.deliveryFeeKobo}
+                notice={courier}
               />
             </Suspense>
           </Section>
