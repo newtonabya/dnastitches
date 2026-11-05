@@ -11,7 +11,7 @@ truth** for product behaviour, data model and architecture.
 - **Customer side:** sign-in and profile (US-E1); the shop gallery, product detail and notify-me (US-A1, A2, D2); the custom journey (US-A3, B1, B2, B3); Paystack checkout for ready-to-wear (US-A4); online deposits and balances (US-C4); My Wardrobe (US-D1); defect repair requests (US-D3); booking consultations (US-F1); fitting and pickup reminder emails (US-G1); reviews (US-H1).
 - **Admin side:** the order pipeline and order detail (US-C1), client profiles (US-C2), catalog management (US-C3), the notify-me CSV export (US-D2), delivery zones (D-12), quotes and offline payments (US-C4), shop orders, repair requests (US-D3), appointments with booking hours (US-F2), and review approval (US-H1).
 
-v1.2 so far: restock emails (US-D4) and SMS/WhatsApp reminders (US-G2). Still on the roadmap (`PRD.md` §4): an analytics dashboard and a courier integration.
+v1.2 so far: restock emails (US-D4), SMS/WhatsApp reminders (US-G2) and the analytics dashboard at Admin → Analytics (US-C5). Still on the roadmap (`PRD.md` §4): a courier integration.
 
 ## Stack
 
