@@ -4,7 +4,7 @@ import type { CustomOrderStatus, FulfillmentMethod, PaymentKind } from "@/genera
 import type { PrismaClient } from "@/generated/prisma/client";
 import { availableToReserve, isReservationActive, reservationCutoff } from "@/lib/checkout";
 import { computeBalance } from "@/lib/custom-order/balance";
-import { resolveDeliveryFee } from "@/lib/delivery";
+import { chooseDelivery, resolveDeliveryFee } from "@/lib/delivery";
 import { deriveInventoryStatus } from "@/lib/inventory";
 import { newPaymentReference } from "@/lib/payments/reference";
 import type { Verification } from "@/lib/payments/types";
@@ -88,6 +88,8 @@ export async function reserveRtwOrder(
     productId: string;
     fulfillmentMethod: FulfillmentMethod;
     addressId?: string;
+    /** The courier's live price for this address, fetched before the transaction (US-D5). */
+    courierQuote?: { feeKobo: number; courierName: string; etaDays: number | null } | null;
   },
   now = new Date(),
 ): Promise<ReserveResult> {
@@ -124,6 +126,7 @@ export async function reserveRtwOrder(
 
     let deliveryFeeKobo = 0;
     let deliveryZoneId: string | null = null;
+    let deliveryQuotedBy: string | null = null;
     let addressId: string | null = null;
     if (input.fulfillmentMethod === "DELIVERY") {
       const address = await tx.address.findFirst({
@@ -136,19 +139,23 @@ export async function reserveRtwOrder(
           code: "ADDRESS",
           message: "Choose one of your saved addresses.",
         } as const;
-      const fee = resolveDeliveryFee(
-        address.state,
-        await tx.deliveryZone.findMany({ where: { isActive: true } }),
+      const delivery = chooseDelivery(
+        input.courierQuote ?? null,
+        resolveDeliveryFee(
+          address.state,
+          await tx.deliveryZone.findMany({ where: { isActive: true } }),
+        ),
       );
-      if (!fee.available) {
+      if (!delivery) {
         return {
           ok: false,
           code: "NO_DELIVERY",
           message: `We don't deliver to ${address.state} yet. Please choose pickup.`,
         } as const;
       }
-      deliveryFeeKobo = fee.feeKobo;
-      deliveryZoneId = fee.zoneId;
+      deliveryFeeKobo = delivery.feeKobo;
+      deliveryZoneId = delivery.zoneId;
+      deliveryQuotedBy = delivery.quotedBy;
       addressId = address.id;
     }
 
@@ -165,6 +172,7 @@ export async function reserveRtwOrder(
         fulfillmentMethod: input.fulfillmentMethod,
         addressId,
         deliveryZoneId,
+        deliveryQuotedBy,
         finalSaleAcknowledgedAt: now,
         createdAt: now,
         payments: {

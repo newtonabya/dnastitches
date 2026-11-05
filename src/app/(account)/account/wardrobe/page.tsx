@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+
+import { ShipmentNote } from "@/components/account/shipment-note";
 import { Suspense } from "react";
 
 import { OrderProgress } from "@/components/account/order-progress";
@@ -139,6 +141,7 @@ async function Wardrobe({ searchParams }: Pick<PageProps<"/account/wardrobe">, "
                     {RTW_STATUS[o.status]}
                   </Badge>
                   <span className="tabular-nums">{formatNGN(o.totalKobo)}</span>
+                  {o.shipments[0] ? <ShipmentNote shipment={o.shipments[0]} /> : null}
                   {o.status === "FULFILLED" &&
                   !activeRepairFor.has(o.id) &&
                   isWithinDefectWindow(o.fulfilledAt, now, env.REPAIR_WINDOW_DAYS) ? (

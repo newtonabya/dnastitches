@@ -8,6 +8,7 @@ import { STATUS_LABELS } from "@/lib/custom-order/status";
 import { prisma } from "@/lib/prisma";
 import { cn } from "@/lib/utils";
 import { FulfilButton } from "@/components/admin/fulfil-button";
+import { SHIPMENT_STATUS_LABELS } from "@/lib/courier/shipments";
 import { isReservationActive } from "@/lib/checkout";
 import { formatNGN } from "@/lib/money";
 import { formatNigerianPhone } from "@/lib/nigeria";
@@ -231,6 +232,20 @@ async function ShopOrders() {
               <span className="text-xs text-muted-foreground">
                 on {dateFormat.format(o.fulfilledAt)}
               </span>
+            ) : null}
+            {o.shipments[0] ? (
+              <span className="text-xs text-muted-foreground" data-testid="shipment-summary">
+                {SHIPMENT_STATUS_LABELS[o.shipments[0].status]} · {o.shipments[0].trackingCode}
+              </span>
+            ) : null}
+            {o.fulfillmentMethod === "DELIVERY" && o.status !== "PENDING_PAYMENT" ? (
+              <Link
+                href={`/admin/orders/shop/${o.id}`}
+                className="text-xs underline"
+                aria-label={`Courier and tracking: ${o.product.name}`}
+              >
+                Courier &amp; tracking
+              </Link>
             ) : null}
             {o.status === "PAID" ? (
               <FulfilButton

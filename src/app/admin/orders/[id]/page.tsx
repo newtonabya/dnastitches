@@ -4,6 +4,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
+import { CourierPanel } from "@/components/admin/courier-panel";
+
 import { ScheduleAppointmentForm } from "@/components/admin/appointment-forms";
 import {
   AdminNotesForm,
@@ -283,6 +285,23 @@ async function OrderDetail({ params }: Pick<PageProps<"/admin/orders/[id]">, "pa
             action={updateCustomOrderStatus}
           />
         </Section>
+
+        {order.fulfillmentMethod === "DELIVERY" ? (
+          <Section title="Courier">
+            <Suspense
+              fallback={
+                <p role="status" className="text-sm text-muted-foreground">
+                  Getting courier prices…
+                </p>
+              }
+            >
+              <CourierPanel
+                target={{ kind: "CUSTOM_ORDER", id: order.id }}
+                chargedKobo={order.deliveryFeeKobo}
+              />
+            </Suspense>
+          </Section>
+        ) : null}
 
         <Section title="Appointments">
           {appointments.length > 0 ? (

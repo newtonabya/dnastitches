@@ -14,8 +14,8 @@ export interface CheckoutAddress {
   id: string;
   summary: string;
   isDefault: boolean;
-  /** null when no active delivery zone covers the address's state. */
-  delivery: { feeKobo: number; etaDays: number; zoneName: string } | null;
+  /** The courier's live price or the zone's flat fee; null when neither covers the address. */
+  delivery: { feeKobo: number; etaDays: number | null; label: string } | null;
 }
 
 /**
@@ -96,7 +96,7 @@ export function CheckoutForm({
                 ? "Add a delivery address in your profile to choose delivery."
                 : deliverable.length === 0
                   ? "We don't deliver to your saved addresses yet, so pickup only."
-                  : "Flat fee by delivery zone, shown below."}
+                  : "Delivery price for your address, shown below."}
             </span>
           </span>
         </label>
@@ -124,7 +124,8 @@ export function CheckoutForm({
           </select>
           {chosen?.delivery ? (
             <p className="text-xs text-muted-foreground">
-              {chosen.delivery.zoneName} · usually {chosen.delivery.etaDays} days
+              {chosen.delivery.label}
+              {chosen.delivery.etaDays ? ` · usually ${chosen.delivery.etaDays} days` : ""}
             </p>
           ) : null}
           {fieldErrors.addressId ? (
