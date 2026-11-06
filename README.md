@@ -87,6 +87,21 @@ If `AUTH_RESEND_KEY` is empty (development only), magic-link emails aren't sent.
 sign-in link is printed in the `pnpm dev` terminal; open it in your browser to sign in. Production
 requires a real Resend key.
 
+### Demo mode (testing before email works)
+
+For a demo or a test round before email sign-in works, set `DEMO_ACCESS_CODE` (12+ characters;
+in Vercel as a Secret) and redeploy. The sign-in page then shows a **Sign in with demo passcode**
+form: any email plus the passcode signs in at once, no email needed. Admin emails from
+`ADMIN_EMAILS` get the admin as usual. Attempts are limited to 10 per 10 minutes per IP, and each
+use is logged (`[auth] Demo sign-in used for …`). **Anyone with the passcode can sign in as
+anyone, admins included: delete `DEMO_ACCESS_CODE` and redeploy before launch.**
+
+**Admin → Settings → Demo content** adds a sample catalogue with bundled artwork marked "DEMO":
+6 products (available, last-one and sold-out), 4 swatches, 4 portfolio pieces (one is the
+home-page hero), 3 delivery zones, and weekday booking hours if you have none. **Remove demo
+content** takes it all away again (demo products that have orders are hidden instead) and leaves
+everything you added yourself. The artwork lives in `public/demo/`.
+
 ### Payments (Paystack)
 
 Ready-to-wear checkout and custom-order deposits and balances go through Paystack in NGN.

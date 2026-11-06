@@ -57,7 +57,11 @@ const cmField = (label: string) =>
       .optional(),
   );
 
-const httpsUrl = z.url({ protocol: /^https$/, error: "Image must be an https URL" });
+/** An uploaded image (https), or one of the bundled demo images under /demo/ (Admin → Settings). */
+const httpsUrl = z.union(
+  [z.url({ protocol: /^https$/ }), z.string().regex(/^\/demo\/[a-z0-9-]+\.(?:jpg|png|webp)$/)],
+  { error: "Image must be an https URL" },
+);
 
 export const productImageSchema = z.object({
   url: httpsUrl,

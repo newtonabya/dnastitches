@@ -65,6 +65,14 @@ describe("parseEnv", () => {
       expect(() => parseEnv({ ...base, EMAIL_FROM: bad })).toThrow(/EMAIL_FROM/);
   });
 
+  it("demo access needs a passcode of 12+ characters", () => {
+    expect(parseEnv(base).DEMO_ACCESS_CODE).toBeUndefined();
+    expect(parseEnv({ ...base, DEMO_ACCESS_CODE: "long-enough-code" }).DEMO_ACCESS_CODE).toBe(
+      "long-enough-code",
+    );
+    expect(() => parseEnv({ ...base, DEMO_ACCESS_CODE: "short" })).toThrow(/DEMO_ACCESS_CODE/);
+  });
+
   it("parses courier settings (v1.2): a Sendbox token needs the pickup address", () => {
     expect(parseEnv(base)).toMatchObject({ COURIER_PARCEL_WEIGHT_KG: 1, COURIER_DEV: false });
     const origin = {

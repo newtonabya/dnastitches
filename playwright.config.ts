@@ -11,10 +11,13 @@ export const MAGIC_LINK_FILE = path.resolve(".playwright/magic-links.jsonl");
  * the E2E dev server (this overrides ADMIN_EMAILS from .env for that server only).
  */
 export const E2E_PROJECTS = ["chromium", "mobile"] as const;
+/** The demo sign-in passcode the E2E server runs with. */
+export const DEMO_PASSCODE = "e2e-demo-passcode-2026";
+
 export const e2eAdminEmail = (project: string, slot: number) =>
   `e2e-admin-${project}-${slot}@example.com`;
 const E2E_ADMIN_EMAILS = E2E_PROJECTS.flatMap((p) =>
-  Array.from({ length: 17 }, (_, i) => i + 1).map((slot) => e2eAdminEmail(p, slot)),
+  Array.from({ length: 18 }, (_, i) => i + 1).map((slot) => e2eAdminEmail(p, slot)),
 ).join(",");
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://localhost:${PORT}`;
 
@@ -54,6 +57,8 @@ export default defineConfig({
           ADMIN_EMAILS: E2E_ADMIN_EMAILS,
           // Payments go through the built-in dev gateway (/dev/paystack), never Paystack.
           PAYSTACK_SECRET_KEY: "",
+          // Demo sign-in (no email): tested in demo.spec.ts.
+          DEMO_ACCESS_CODE: DEMO_PASSCODE,
           // The simulated courier (US-D5): live delivery prices and booking, no network.
           COURIER_DEV: "true",
           SENDBOX_API_KEY: "",
