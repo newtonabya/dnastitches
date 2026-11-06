@@ -89,15 +89,14 @@ export const envSchema = z
 
     // Email
     RESEND_API_KEY: optionalString,
-    // "Name <address@domain>" or a bare address, the formats Resend accepts. Checked here so a
-    // typo (or a copied placeholder) fails the build instead of every sign-in email.
+    // Only clearly broken senders fail the build: no "@" at all, or a copied placeholder like
+    // "hello@<your-domain>". Anything else is left to Resend, which reports its own errors.
     EMAIL_FROM: optionalString.pipe(
       z
         .string()
-        .regex(
-          /^(?:[^<>]*<\s*[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+\s*>|[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+)$/,
-          'must be "Name <hello@yourdomain.com>" or "hello@yourdomain.com"',
-        )
+        .refine((v) => v.includes("@") && !/@\s*</.test(v), {
+          message: 'must be a sender like "DNA Stitches <hello@yourdomain.com>"',
+        })
         .optional(),
     ),
 
