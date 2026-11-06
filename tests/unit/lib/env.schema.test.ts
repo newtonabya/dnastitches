@@ -50,6 +50,23 @@ describe("parseEnv", () => {
     );
   });
 
+  it("checks the EMAIL_FROM format Resend accepts", () => {
+    for (const ok of [
+      "DNA Stitches <hello@dnastitches.com>",
+      "hello@dnastitches.com",
+      "DNA Stitches <onboarding@resend.dev>",
+    ])
+      expect(parseEnv({ ...base, EMAIL_FROM: ok }).EMAIL_FROM).toBe(ok);
+    for (const bad of [
+      "DNA Stitches <hello@<your-domain>>",
+      "DNA Stitches hello@dnastitches.com",
+      '"DNA Stitches <hello@dnastitches.com>"',
+      "DNA Stitches <hello@dnastitches>",
+      "hello",
+    ])
+      expect(() => parseEnv({ ...base, EMAIL_FROM: bad })).toThrow(/EMAIL_FROM/);
+  });
+
   it("parses courier settings (v1.2): a Sendbox token needs the pickup address", () => {
     expect(parseEnv(base)).toMatchObject({ COURIER_PARCEL_WEIGHT_KG: 1, COURIER_DEV: false });
     const origin = {

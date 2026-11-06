@@ -1,6 +1,6 @@
 # DNA Stitches — Product Requirements Document (PRD)
 
-> **Status:** v1.3 — MVP (v1.0) and v1.1 built. Where the build differs from the original text, see D-14 to D-21 in §13.
+> **Status:** v1.4. MVP (v1.0), v1.1 and v1.2 built. Where the build differs from the original text, see D-14 to D-25 in §13.
 > **Owner:** Newton Abya
 > **Last updated:** 2026-11-02
 > **Source of truth:** This file is the canonical spec for all implementation work (human or AI-assisted). If code and this document disagree, the document wins until it is amended via a reviewed commit.

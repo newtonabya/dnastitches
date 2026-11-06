@@ -342,6 +342,9 @@ tests/
 
 ## Deploying
 
+Going live: `docs/LAUNCH.md`. Hands-on acceptance test with two admins and ten customers:
+`docs/TESTING.md`.
+
 See [`docs/LAUNCH.md`](./docs/LAUNCH.md) for the full go-live checklist. On Vercel, the
 `vercel-build` script applies pending migrations to that environment's `DATABASE_URL` before
 building, so give **Preview** and **Production** separate databases (for example Neon branches).

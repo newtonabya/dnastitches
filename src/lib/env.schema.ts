@@ -89,7 +89,17 @@ export const envSchema = z
 
     // Email
     RESEND_API_KEY: optionalString,
-    EMAIL_FROM: optionalString,
+    // "Name <address@domain>" or a bare address, the formats Resend accepts. Checked here so a
+    // typo (or a copied placeholder) fails the build instead of every sign-in email.
+    EMAIL_FROM: optionalString.pipe(
+      z
+        .string()
+        .regex(
+          /^(?:[^<>@]+ <[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+>|[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+)$/,
+          'must be "Name <hello@yourdomain.com>" or "hello@yourdomain.com"',
+        )
+        .optional(),
+    ),
 
     // Cron (v1.1)
     CRON_SECRET: optionalString,
