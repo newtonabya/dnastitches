@@ -95,7 +95,7 @@ export const envSchema = z
       z
         .string()
         .regex(
-          /^(?:[^<>@]+ <[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+>|[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+)$/,
+          /^(?:[^<>]*<\s*[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+\s*>|[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+)$/,
           'must be "Name <hello@yourdomain.com>" or "hello@yourdomain.com"',
         )
         .optional(),
