@@ -55,6 +55,11 @@ describe("parseEnv", () => {
       "DNA Stitches <hello@dnastitches.com>",
       "hello@dnastitches.com",
       "DNA Stitches <onboarding@resend.dev>",
+      // Also accepted by Resend: no space, a quoted name, or no name at all.
+      "DNA Stitches<hello@dnastitches.com>",
+      '"DNA Stitches" <hello@dnastitches.com>',
+      "<hello@dnastitches.com>",
+      "DNA Stitches < hello@dnastitches.com >",
     ])
       expect(parseEnv({ ...base, EMAIL_FROM: ok }).EMAIL_FROM).toBe(ok);
     for (const bad of [
