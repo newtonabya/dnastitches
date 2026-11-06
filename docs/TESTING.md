@@ -28,10 +28,17 @@ It takes about half a day. You can stop after any numbered section and carry on 
 
 ### 0.2 Email addresses: one inbox for everyone
 
-Gmail (and most providers) deliver `you+anything@gmail.com` to `you@gmail.com`. Replace `you`
-with your own Gmail name below, and every test account's email arrives in your one inbox, each
-to a different DNA Stitches account. Tip: in Gmail, search `to:you+dna-c3` to see one customer's
-emails.
+Gmail (and most providers) deliver `you+anything@gmail.com` to `you@gmail.com`. Put the `+tag`
+**before the `@`**, in place of your address. For example, if your email is `ada@gmail.com`:
+
+| Account | Type this                  | Not this                                 |
+| ------- | -------------------------- | ---------------------------------------- |
+| Admin A | `ada+dna-admin1@gmail.com` | ~~`ada@gmail.com+dna-admin1@gmail.com`~~ |
+| C3      | `ada+dna-c3@gmail.com`     |                                          |
+
+Every test account's email then arrives in your one inbox, each signing in to a different
+DNA Stitches account. Tip: in Gmail, search `to:ada+dna-c3` to see one customer's emails. In the
+tables below, replace `you` with the part of your address before the `@`.
 
 ### 0.3 Browsers
 
