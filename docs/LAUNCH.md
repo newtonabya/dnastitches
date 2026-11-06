@@ -107,6 +107,9 @@ Sign in with an email from `ADMIN_EMAILS`. You get the Admin link on first sign-
 
 ## 7. Smoke test on production
 
+For a full walkthrough with two admins and ten test customers, use `docs/TESTING.md`
+(Paystack test keys only).
+
 - [ ] Sign in by email (check the link arrives from your domain) and with Google if enabled.
 - [ ] Shop: browse, open a piece, switch cm/in, join notify-me on a sold-out piece.
 - [ ] Custom: submit a request with a photo; it appears in Admin → Orders.
