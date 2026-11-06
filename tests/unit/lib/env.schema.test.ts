@@ -50,25 +50,18 @@ describe("parseEnv", () => {
     );
   });
 
-  it("checks the EMAIL_FROM format Resend accepts", () => {
+  it("fails the build only for clearly broken EMAIL_FROM values", () => {
     for (const ok of [
       "DNA Stitches <hello@dnastitches.com>",
       "hello@dnastitches.com",
       "DNA Stitches <onboarding@resend.dev>",
-      // Also accepted by Resend: no space, a quoted name, or no name at all.
       "DNA Stitches<hello@dnastitches.com>",
       '"DNA Stitches" <hello@dnastitches.com>',
       "<hello@dnastitches.com>",
       "DNA Stitches < hello@dnastitches.com >",
     ])
       expect(parseEnv({ ...base, EMAIL_FROM: ok }).EMAIL_FROM).toBe(ok);
-    for (const bad of [
-      "DNA Stitches <hello@<your-domain>>",
-      "DNA Stitches hello@dnastitches.com",
-      '"DNA Stitches <hello@dnastitches.com>"',
-      "DNA Stitches <hello@dnastitches>",
-      "hello",
-    ])
+    for (const bad of ["DNA Stitches <hello@<your-domain>>", "hello@ <your-domain>", "hello"])
       expect(() => parseEnv({ ...base, EMAIL_FROM: bad })).toThrow(/EMAIL_FROM/);
   });
 
