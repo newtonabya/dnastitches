@@ -93,3 +93,9 @@ export async function allowSignInEmail(
   if (production && !(await byIp.limit(`signin:ip:${ip}`)).success) return false;
   return true;
 }
+
+/** Demo sign-in (DEMO_ACCESS_CODE): 10 attempts per IP per 10 minutes, to slow guessing. */
+export const demoSignInRateLimiter = createMemoryRateLimiter({
+  limit: 10,
+  windowMs: 10 * 60 * 1000,
+});

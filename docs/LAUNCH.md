@@ -104,6 +104,9 @@ Sign in with an email from `ADMIN_EMAILS`. You get the Admin link on first sign-
 - [ ] **Swatches**, then **Products** (with photos, measurements, care), then **Portfolio**.
       Publish each when ready.
 - [ ] Read **/policies/terms** and check that the wording matches how you work.
+- [ ] **Settings → Demo content:** if you loaded it, press **Remove demo content**.
+- [ ] **Vercel:** delete `DEMO_ACCESS_CODE` if you set it, then redeploy. Admin → Settings
+      warns while it's on.
 
 ## 7. Smoke test on production
 

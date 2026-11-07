@@ -2,11 +2,14 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { z } from "zod";
 
+import { DemoSignInForm, type DemoSignInState } from "@/components/auth/demo-sign-in-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { enabledProviders, signIn } from "@/lib/auth";
-import { allowSignInEmail, getClientIp } from "@/lib/rate-limit";
+import { demoLinkCapture, isDemoPasscode } from "@/lib/demo-access";
+import { env } from "@/lib/env";
+import { allowSignInEmail, demoSignInRateLimiter, getClientIp } from "@/lib/rate-limit";
 import { safeCallbackUrl } from "@/lib/route-access";
 
 export const metadata: Metadata = { title: "Sign in" };
@@ -21,6 +24,8 @@ const SIGN_IN_ERRORS: Record<string, string> = {
     "This email is already linked to another sign-in method. Use the email link instead.",
   AccessDenied: "Access denied.",
   RateLimited: "Too many sign-in emails were requested. Please wait a few minutes and try again.",
+  DemoCode: "That demo passcode isn't right.",
+  DemoRateLimited: "Too many demo sign-in attempts. Please wait a few minutes and try again.",
 };
 
 /**
@@ -75,6 +80,36 @@ async function SignInForms({ searchParams }: Pick<PageProps<"/sign-in">, "search
     await signIn("resend", { email: email.data, redirectTo });
   }
 
+  /** Demo sign-in: email + DEMO_ACCESS_CODE, no email sent (see src/lib/demo-access.ts). */
+  async function demoSignIn(_state: DemoSignInState, formData: FormData): Promise<DemoSignInState> {
+    "use server";
+    const fail = (code: string) => ({
+      error: SIGN_IN_ERRORS[code] ?? "Sign-in failed. Please try again.",
+    });
+    if (!env.DEMO_ACCESS_CODE) return fail("AccessDenied");
+    const redirectTo = safeCallbackUrl(String(formData.get("callbackUrl") ?? ""), DEFAULT_CALLBACK);
+    const { headers } = await import("next/headers");
+    const ip = getClientIp(await headers());
+    if (!(await demoSignInRateLimiter.limit(`demo:ip:${ip}`)).success)
+      return fail("DemoRateLimited");
+    const email = z.email().safeParse(
+      String(formData.get("email") ?? "")
+        .trim()
+        .toLowerCase(),
+    );
+    if (!email.success) return fail("InvalidEmail");
+    if (!isDemoPasscode(String(formData.get("passcode") ?? ""), env.DEMO_ACCESS_CODE))
+      return fail("DemoCode");
+
+    const captured: { url?: string } = {};
+    await demoLinkCapture.run(captured, () =>
+      signIn("resend", { email: email.data, redirectTo, redirect: false }),
+    );
+    if (!captured.url) return fail("Configuration");
+    console.info(`[auth] Demo sign-in used for ${email.data}`);
+    return { url: captured.url };
+  }
+
   async function googleSignIn(formData: FormData) {
     "use server";
     const redirectTo = safeCallbackUrl(String(formData.get("callbackUrl") ?? ""), DEFAULT_CALLBACK);
@@ -96,6 +131,9 @@ async function SignInForms({ searchParams }: Pick<PageProps<"/sign-in">, "search
         <Input id="email" name="email" type="email" autoComplete="email" required />
         <Button type="submit">Email me a sign-in link</Button>
       </form>
+      {env.DEMO_ACCESS_CODE ? (
+        <DemoSignInForm callbackUrl={callbackUrl} action={demoSignIn} />
+      ) : null}
       {enabledProviders.includes("google") ? (
         <form action={googleSignIn}>
           <input type="hidden" name="callbackUrl" value={callbackUrl} />

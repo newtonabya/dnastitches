@@ -7,6 +7,7 @@ import {
   RemoveButton,
 } from "@/components/admin/appointment-forms";
 import { DeliveryZoneForm } from "@/components/admin/catalog-forms";
+import { DemoContentButtons } from "@/components/admin/demo-content";
 import { Badge } from "@/components/ui/badge";
 import { env } from "@/lib/env";
 import { formatNGN } from "@/lib/money";
@@ -18,8 +19,10 @@ import {
   deleteAvailabilityRuleAction,
   deleteBlackoutDateAction,
 } from "@/server/actions/admin/appointments";
+import { demoContentAction } from "@/server/actions/admin/demo";
 import { saveDeliveryZoneAction } from "@/server/actions/admin/settings";
 import { requireAdmin } from "@/server/auth/guards";
+import { demoContentSummary } from "@/server/data/admin/demo";
 import { listDeliveryZones, overlappingStates } from "@/server/data/admin/settings";
 import { listAvailability } from "@/server/data/appointments";
 
@@ -27,7 +30,7 @@ export const metadata: Metadata = { title: "Settings" };
 
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-/** Delivery zones (D-12), booking hours (US-F1) and read-only business settings. */
+/** Delivery zones (D-12), booking hours (US-F1), read-only business settings and demo content. */
 export default function SettingsPage() {
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8">
@@ -47,10 +50,12 @@ export default function SettingsPage() {
 
 async function Settings() {
   await requireAdmin();
-  const [zones, availability] = await Promise.all([
+  const [zones, availability, demo] = await Promise.all([
     listDeliveryZones(prisma),
     listAvailability(prisma, new Date()),
+    demoContentSummary(prisma),
   ]);
+  const hasDemo = demo.products + demo.swatches + demo.portfolio + demo.zones > 0;
   const overlaps = overlappingStates(zones);
   const placeholders = zones.filter((z) => z.isActive && z.name.startsWith("PLACEHOLDER"));
 
@@ -192,6 +197,36 @@ async function Settings() {
             <dd>{env.MIN_LEAD_TIME_DAYS} days</dd>
           </div>
         </dl>
+      </section>
+
+      <section aria-label="Demo content" className="flex flex-col gap-3">
+        <h2 className="text-xl font-semibold">Demo content</h2>
+        <p className="text-sm text-muted-foreground">
+          Sample products, fabric swatches, portfolio pieces and delivery zones, so the site can be
+          shown and tested before the real catalogue is ready. Demo images are marked
+          &ldquo;DEMO&rdquo;, and removing the demo content leaves everything you added yourself
+          untouched.
+        </p>
+        {hasDemo ? (
+          <p
+            role="alert"
+            className="rounded-md border border-amber-500/40 bg-amber-500/5 p-3 text-sm"
+          >
+            The site is showing demo content: {demo.products} product(s), {demo.swatches}{" "}
+            swatch(es), {demo.portfolio} portfolio piece(s) and {demo.zones} delivery zone(s).
+            Remove it before launch.
+          </p>
+        ) : null}
+        {env.DEMO_ACCESS_CODE ? (
+          <p
+            role="alert"
+            className="rounded-md border border-amber-500/40 bg-amber-500/5 p-3 text-sm"
+          >
+            Demo sign-in is on: anyone with the demo passcode can sign in as any email, admins
+            included. Delete DEMO_ACCESS_CODE in Vercel and redeploy before launch.
+          </p>
+        ) : null}
+        <DemoContentButtons hasDemo={hasDemo} action={demoContentAction} />
       </section>
     </>
   );

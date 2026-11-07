@@ -6,15 +6,31 @@ import Resend from "next-auth/providers/resend";
 
 import { authConfig } from "@/lib/auth.config";
 import { devSendVerificationRequest } from "@/lib/auth-dev-email";
+import { demoLinkCapture } from "@/lib/demo-access";
 import { env } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 
+const resendOptions = {
+  apiKey: env.AUTH_RESEND_KEY,
+  from: env.EMAIL_FROM ?? "DNA Stitches <onboarding@resend.dev>",
+};
+// Without a Resend key (development only; production requires it), log the link instead.
+const sendSignInEmail = env.AUTH_RESEND_KEY
+  ? Resend(resendOptions).sendVerificationRequest
+  : devSendVerificationRequest;
+
 const providers: Provider[] = [
   Resend({
-    apiKey: env.AUTH_RESEND_KEY,
-    from: env.EMAIL_FROM ?? "DNA Stitches <onboarding@resend.dev>",
-    // Without a Resend key (development only; production requires it), log the link instead.
-    ...(env.AUTH_RESEND_KEY ? {} : { sendVerificationRequest: devSendVerificationRequest }),
+    ...resendOptions,
+    async sendVerificationRequest(params) {
+      // Demo sign-in (DEMO_ACCESS_CODE): keep the link for the browser instead of emailing it.
+      const demo = demoLinkCapture.getStore();
+      if (demo) {
+        demo.url = params.url;
+        return;
+      }
+      await sendSignInEmail(params);
+    },
   }),
 ];
 

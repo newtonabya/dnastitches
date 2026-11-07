@@ -142,6 +142,11 @@ export const envSchema = z
       .enum(["true", "false", ""])
       .optional()
       .transform((v) => v === "true"),
+    // Demo sign-in for testing (no email needed). Anyone with this passcode can sign in as any
+    // account, admins included: delete it before launch. At least 12 characters.
+    DEMO_ACCESS_CODE: optionalString.pipe(
+      z.string().min(12, "must be at least 12 characters").optional(),
+    ),
     APPOINTMENTS_AUTO_CONFIRM: z
       .enum(["true", "false", ""])
       .optional()

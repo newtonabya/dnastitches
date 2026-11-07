@@ -53,6 +53,11 @@ describe("productSchema (US-C3)", () => {
       "Image must be an https URL",
     ],
     [
+      { images: JSON.stringify([{ url: "/demo/../secret.jpg", alt: "a" }]) },
+      "images.0.url",
+      "Image must be an https URL",
+    ],
+    [
       { images: JSON.stringify([{ url: "https://x/a.jpg", alt: "" }]) },
       "images.0.alt",
       "Describe each image (alt text)",
@@ -62,6 +67,14 @@ describe("productSchema (US-C3)", () => {
     expect(r.success).toBe(false);
     if (!r.success) expect(fieldErrors(r.error)[field]).toBe(message);
   });
+});
+
+it("accepts the bundled demo images (Admin → Settings → Demo content)", () => {
+  const r = productSchema.safeParse({
+    ...product,
+    images: JSON.stringify([{ url: "/demo/product-onyx-jumpsuit.jpg", alt: "Jumpsuit" }]),
+  });
+  expect(r.success).toBe(true);
 });
 
 describe("swatchSchema", () => {

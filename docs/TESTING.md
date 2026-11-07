@@ -23,6 +23,10 @@ It takes about half a day. You can stop after any numbered section and carry on 
       receives mail, so the twelve test accounts below wouldn't get their sign-in links.
 - [ ] **Paystack webhook** is set to `https://<your-site>/api/webhooks/paystack` in Paystack
       → Settings → API Keys & Webhooks (test mode).
+- [ ] **Email not working yet?** Set `DEMO_ACCESS_CODE` (12+ characters, Secret) and redeploy.
+      Everyone in the cast can then sign in with **Sign in with demo passcode** on the sign-in
+      page instead of waiting for an email link. Emails the script expects (order confirmations,
+      reminders) still won't arrive, so skip those checks. Delete `DEMO_ACCESS_CODE` afterwards.
 - [ ] Optional, only if you'll test them: `SENDBOX_API_KEY` + `COURIER_ORIGIN_*` (courier, C10)
       and `TERMII_API_KEY` + `TERMII_SENDER_ID` (text reminders, C9).
 
@@ -450,6 +454,8 @@ Use two separate browsers side by side, C6 in one and C7 in the other.
 - [ ] Settings: deactivate the **TEST** delivery zones, remove the **TEST holiday** blocked date,
       and set your real zones and hours.
 - [ ] Reviews: **Hide** the test reviews so they don't show as testimonials.
+- [ ] Settings → Demo content: **Remove demo content** if you loaded it, and delete
+      `DEMO_ACCESS_CODE` in Vercel if you set it.
 - [ ] Vercel: keep Paystack **test** keys until you're ready to take real money; switching to
       live keys is the last step in `docs/LAUNCH.md`.
 
