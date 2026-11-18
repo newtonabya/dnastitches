@@ -43,7 +43,7 @@ test.describe("US-A1 shop gallery", () => {
     expect(statuses.length).toBeGreaterThan(0);
     expect(new Set(statuses)).toEqual(new Set(["SOLD_OUT"]));
 
-    await page.getByRole("link", { name: "Available" }).click();
+    await page.getByRole("main").getByRole("link", { name: "Available", exact: true }).click();
     await expect(page).toHaveURL(/status=available/);
     const availableStatuses = await page
       .getByTestId("product-card")

@@ -17,7 +17,7 @@ describe("<ProductCard> (US-A1)", () => {
     render(<ProductCard product={base} />);
     expect(screen.getByRole("link")).toHaveAttribute("href", "/shop/adire-wrap-dress");
     expect(screen.getByRole("heading", { name: "Adire Wrap Dress" })).toBeInTheDocument();
-    expect(screen.getByText("₦185,000.00")).toBeInTheDocument();
+    expect(screen.getByText("₦185,000")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "Adire Wrap Dress — front" })).toBeInTheDocument();
     expect(screen.getByText("Available")).toBeInTheDocument();
   });

@@ -18,7 +18,7 @@ beforeAll(async () => {
         title: "Pub",
         description: "x",
         imageUrl: "https://placehold.co/a.png",
-        tags: [tag, "bridal"],
+        tags: [tag, "bridal", "hero"],
         isPublished: true,
       },
       {
@@ -62,6 +62,10 @@ afterAll(async () => {
 describe("portfolio (US-B2 AC1)", () => {
   it("lists only published items, filterable by tag", async () => {
     expect((await listPublishedPortfolio(prisma, tag)).map((i) => i.id)).toEqual([`${prefix}-pub`]);
+    // The home page still finds its hero by the tag.
+    expect((await listPublishedPortfolio(prisma, "hero")).map((i) => i.id)).toContain(
+      `${prefix}-pub`,
+    );
     expect((await listPublishedPortfolio(prisma)).map((i) => i.id)).not.toContain(
       `${prefix}-draft`,
     );
@@ -71,6 +75,8 @@ describe("portfolio (US-B2 AC1)", () => {
     const tags = await listPortfolioTags(prisma);
     expect(tags).toContain(tag);
     expect(tags).not.toContain(`${prefix}-hidden`);
+    // "hero" picks the home-page photo; it's a setting, never a public filter.
+    expect(tags).not.toContain("hero");
     expect([...tags].sort((a, b) => a.localeCompare(b))).toEqual(tags);
   });
 

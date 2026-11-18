@@ -3,12 +3,14 @@ import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { publicTags } from "@/lib/portfolio";
 import type { PortfolioCardData } from "@/server/data/portfolio";
 
 /** Portfolio item with the "I want something like this" call to action (US-B2 AC2). */
 export function PortfolioCard({ item }: { item: PortfolioCardData }) {
+  const tags = publicTags(item.tags);
   return (
-    <article data-testid="portfolio-card" className="flex break-inside-avoid flex-col gap-3 pb-8">
+    <article data-testid="portfolio-card" className="flex h-full flex-col gap-3">
       <div className="relative aspect-[4/5] overflow-hidden rounded-lg bg-muted">
         <Image
           src={item.imageUrl}
@@ -21,9 +23,9 @@ export function PortfolioCard({ item }: { item: PortfolioCardData }) {
       <div className="flex flex-col gap-2">
         <h2 className="font-medium">{item.title}</h2>
         <p className="text-sm text-muted-foreground">{item.description}</p>
-        {item.tags.length > 0 ? (
+        {tags.length > 0 ? (
           <ul className="flex flex-wrap gap-1" aria-label="Tags">
-            {item.tags.map((tag) => (
+            {tags.map((tag) => (
               <li key={tag}>
                 <Badge variant="outline">{tag}</Badge>
               </li>
@@ -31,7 +33,7 @@ export function PortfolioCard({ item }: { item: PortfolioCardData }) {
           </ul>
         ) : null}
       </div>
-      <Button asChild variant="outline">
+      <Button asChild variant="outline" className="mt-auto">
         <Link href={`/custom/request?fromPortfolio=${encodeURIComponent(item.id)}`}>
           I want something like this<span className="sr-only">: {item.title}</span>
         </Link>

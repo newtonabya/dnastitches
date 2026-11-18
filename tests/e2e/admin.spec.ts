@@ -99,7 +99,7 @@ test.describe("Admin pipeline (US-C1, US-C4 admin side)", () => {
     await payment.getByLabel("Amount (₦)").fill("100000");
     await payment.getByRole("button", { name: "Record payment" }).click();
     await expect(status).toHaveText("In production");
-    await expect(page.getByTestId("balance-due")).toHaveText("₦100,000.00");
+    await expect(page.getByTestId("balance-due")).toHaveText("₦100,000");
 
     await moveTo(page, "Fitting");
     await expect(status).toHaveText("Fitting");
@@ -114,7 +114,7 @@ test.describe("Admin pipeline (US-C1, US-C4 admin side)", () => {
     await payment.getByLabel("Type").selectOption("CUSTOM_BALANCE");
     await payment.getByLabel("Amount (₦)").fill("100000");
     await payment.getByRole("button", { name: "Record payment" }).click();
-    await expect(page.getByTestId("balance-due")).toHaveText("₦0.00");
+    await expect(page.getByTestId("balance-due")).toHaveText("₦0");
     await moveTo(page, "Completed");
     await expect(status).toHaveText("Completed");
 

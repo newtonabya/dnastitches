@@ -32,15 +32,15 @@ describe("statusChangeEmail (US-C1 AC6)", () => {
     const email = statusChangeEmail(base)!;
     expect(email.to).toBe("ada@example.com");
     expect(email.subject).toBe("DNA-2026-0007: Awaiting deposit");
-    expect(email.text).toContain("₦250,000.00 plus ₦5,000.00 delivery");
-    expect(email.text).toContain("deposit of ₦125,000.00");
+    expect(email.text).toContain("₦250,000 plus ₦5,000 delivery");
+    expect(email.text).toContain("deposit of ₦125,000");
     expect(email.text).toContain("non-refundable");
     expect(email.text).toContain("https://dna.example/account/wardrobe/o1");
   });
 
   it("READY includes the balance and pickup/delivery wording", () => {
     expect(statusChangeEmail({ ...base, status: "READY" })!.text).toMatch(
-      /delivery[\s\S]*Balance due before handover: ₦255,000.00/,
+      /delivery[\s\S]*Balance due before handover: ₦255,000/,
     );
     const pickup = statusChangeEmail({
       ...base,

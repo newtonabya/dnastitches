@@ -11,7 +11,7 @@ test.describe("US-A2 product detail", () => {
       "content",
       /placehold\.co/,
     );
-    await expect(page.getByText("₦185,000.00")).toBeVisible();
+    await expect(page.getByText("₦185,000")).toBeVisible();
     await expect(page.getByRole("link", { name: "Buy Now" })).toHaveAttribute(
       "href",
       /\/checkout\//,

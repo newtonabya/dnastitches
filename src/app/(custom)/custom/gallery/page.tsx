@@ -69,7 +69,7 @@ async function Gallery({ searchParams }: Pick<PageProps<"/custom/gallery">, "sea
         </ul>
       </nav>
       {items.length > 0 ? (
-        <ul className="columns-1 gap-6 sm:columns-2 lg:columns-3">
+        <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((item) => (
             <li key={item.id}>
               <PortfolioCard item={item} />

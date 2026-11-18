@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { Cormorant_Garamond, Geist, Geist_Mono, Pinyon_Script } from "next/font/google";
 
 import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
+import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 
 import "./globals.css";
@@ -39,7 +40,10 @@ export const metadata: Metadata = {
   },
   description:
     "1-of-1 ready-to-wear pieces and made-to-measure custom tailoring from the DNA Stitches atelier.",
+  applicationName: "DNA Stitches",
   appleWebApp: { title: "DNA Stitches", statusBarStyle: "black-translucent" },
+  openGraph: { siteName: "DNA Stitches", locale: "en_NG", type: "website" },
+  twitter: { card: "summary_large_image" },
 };
 
 export const viewport: Viewport = {
@@ -67,6 +71,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <div id="content" className="flex flex-1 flex-col">
           {children}
         </div>
+        <SiteFooter />
         {/* Reads the URL, so it renders at request time, apart from the static shell. */}
         <Suspense fallback={null}>
           <MobileTabBar />

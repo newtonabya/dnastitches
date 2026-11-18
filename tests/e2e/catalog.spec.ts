@@ -145,7 +145,7 @@ test.describe("D-12 delivery zone settings", () => {
     await expect(add.getByText("Zone added.")).toBeVisible();
 
     const zone = page.getByRole("listitem").filter({ hasText: zoneName });
-    await expect(zone).toContainText("₦12,000.00");
+    await expect(zone).toContainText("₦12,000");
     await expect(zone).toContainText("Inactive");
     await zone.getByText(zoneName, { exact: true }).click();
     const edit = zone.getByRole("form", { name: `Edit ${zoneName}` });
@@ -153,8 +153,6 @@ test.describe("D-12 delivery zone settings", () => {
     await edit.getByRole("button", { name: "Save zone" }).click();
     await expect(edit.getByText("Zone saved.")).toBeVisible();
     await page.reload();
-    await expect(page.getByRole("listitem").filter({ hasText: zoneName })).toContainText(
-      "₦15,000.00",
-    );
+    await expect(page.getByRole("listitem").filter({ hasText: zoneName })).toContainText("₦15,000");
   });
 });

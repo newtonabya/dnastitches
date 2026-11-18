@@ -141,7 +141,13 @@ export function PipelineBoard({
           },
         }}
       >
-        <div className="flex gap-3 overflow-x-auto pb-4">
+        {/* Scrolls sideways on narrow screens; focusable so keyboard users can scroll it too. */}
+        <div
+          role="group"
+          aria-label="Pipeline columns"
+          tabIndex={0}
+          className="flex gap-3 overflow-x-auto rounded-md pb-4 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        >
           {columns.map((status) => (
             <Column
               key={status}

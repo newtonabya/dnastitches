@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { PrismaClient } from "@/generated/prisma/client";
+import { publicTags } from "@/lib/portfolio";
 
 type Db = Pick<PrismaClient, "portfolioItem" | "fabricSwatch">;
 
@@ -21,13 +22,13 @@ export async function listPublishedPortfolio(db: Db, tag?: string): Promise<Port
   });
 }
 
-/** Distinct tags across published items, alphabetical. */
+/** Distinct customer-facing tags across published items, alphabetical (no "hero"). */
 export async function listPortfolioTags(db: Db): Promise<string[]> {
   const rows = await db.portfolioItem.findMany({
     where: { isPublished: true },
     select: { tags: true },
   });
-  return [...new Set(rows.flatMap((r) => r.tags))].sort((a, b) => a.localeCompare(b));
+  return [...new Set(publicTags(rows.flatMap((r) => r.tags)))].sort((a, b) => a.localeCompare(b));
 }
 
 export interface SwatchOption {
