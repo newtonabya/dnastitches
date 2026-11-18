@@ -78,7 +78,7 @@ describe("reminderEmail", () => {
     expect(email.subject).toBe("Reminder: your pickup, Tuesday, 10 November 2026");
     expect(email.text).toContain("A reminder about your pickup for Wedding gown (DNA-2026-0042).");
     expect(email.text).toContain("When: Tuesday, 10 November 2026, 10:00–10:30 (Lagos time)");
-    expect(email.text).toContain("Balance due before pickup: ₦100,000.00");
+    expect(email.text).toContain("Balance due before pickup: ₦100,000");
     expect(email.text).toContain("https://dna.example/account/wardrobe/o1");
     expect(email.html).toContain("12 Allen Avenue &lt;Ikeja&gt;");
   });

@@ -12,6 +12,14 @@ const ngnFormatter = new Intl.NumberFormat("en-NG", {
   maximumFractionDigits: 2,
 });
 
+/** Whole-naira amounts (nearly every price) read cleaner without ".00". */
+const ngnWholeFormatter = new Intl.NumberFormat("en-NG", {
+  style: "currency",
+  currency: "NGN",
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+});
+
 function assertKobo(kobo: number): void {
   if (!Number.isSafeInteger(kobo)) {
     throw new RangeError(`kobo must be a safe integer, got ${kobo}`);
@@ -38,11 +46,13 @@ export function nairaToKobo(naira: number): number {
 }
 
 /**
- * Format integer kobo as NGN using `en-NG` locale.
- * @example formatNGN(25_000_000) // "₦250,000.00"
+ * Format integer kobo as NGN using `en-NG` locale. Kobo are shown only when there are any.
+ * @example formatNGN(25_000_000) // "₦250,000"
+ * @example formatNGN(150) // "₦1.50"
  */
 export function formatNGN(kobo: number): string {
-  return ngnFormatter.format(koboToNaira(kobo));
+  const naira = koboToNaira(kobo);
+  return kobo % KOBO_PER_NAIRA === 0 ? ngnWholeFormatter.format(naira) : ngnFormatter.format(naira);
 }
 
 /** Percentage of an amount in kobo, rounded to the nearest kobo (e.g. DEPOSIT_PERCENT of a quote). */

@@ -31,9 +31,11 @@ describe("money", () => {
   });
 
   it("formatNGN uses en-NG currency format (US-C4 AC6)", () => {
-    expect(formatNGN(25_000_000)).toBe("₦250,000.00");
-    expect(formatNGN(0)).toBe("₦0.00");
+    expect(formatNGN(25_000_000)).toBe("₦250,000");
+    expect(formatNGN(0)).toBe("₦0");
     expect(formatNGN(150)).toBe("₦1.50");
+    // Kobo show only when there are any: whole naira read cleaner.
+    expect(formatNGN(1_850_050)).toBe("₦18,500.50");
   });
 
   it("percentOfKobo", () => {

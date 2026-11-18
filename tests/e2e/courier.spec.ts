@@ -44,7 +44,7 @@ test.describe("Courier delivery (US-D5)", () => {
     await expect(checkout).toBeVisible({ timeout: 20_000 });
     await checkout.getByText("Deliver to me").click();
     await expect(checkout.getByText("Dev courier Standard · usually 2 days")).toBeVisible();
-    await expect(shopper.getByTestId("checkout-total")).toHaveText("₦123,000.00");
+    await expect(shopper.getByTestId("checkout-total")).toHaveText("₦123,000");
     await expectNoA11yViolations(shopper);
     await checkout.getByRole("checkbox").check();
     await checkout.getByRole("button", { name: /^Pay / }).click();
@@ -66,7 +66,7 @@ test.describe("Courier delivery (US-D5)", () => {
     await page.reload();
     const shipment = page.getByRole("article", { name: /^Shipment DEV-/ });
     await expect(shipment.getByTestId("shipment-status")).toHaveText("Courier booked");
-    await expect(shipment.getByText("₦6,000.00")).toBeVisible();
+    await expect(shipment.getByText("₦6,000")).toBeVisible();
     // Booked once: no second booking form.
     await expect(page.getByRole("form", { name: "Book a courier" })).toHaveCount(0);
     await expectNoA11yViolations(page);

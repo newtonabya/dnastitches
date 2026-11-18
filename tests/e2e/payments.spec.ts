@@ -30,7 +30,7 @@ test.describe("Payments (US-A4, US-C4, US-D1)", () => {
 
     const checkout = shopper.getByRole("form", { name: "Checkout" });
     await expect(checkout).toBeVisible({ timeout: 20_000 });
-    await expect(shopper.getByTestId("checkout-total")).toHaveText("₦120,000.00");
+    await expect(shopper.getByTestId("checkout-total")).toHaveText("₦120,000");
     await expectNoA11yViolations(shopper);
     // Pay stays disabled until the final-sale terms are accepted (AC4).
     const pay = checkout.getByRole("button", { name: /^Pay / });
@@ -43,7 +43,7 @@ test.describe("Payments (US-A4, US-C4, US-D1)", () => {
     await expect(
       shopper.getByRole("heading", { name: `Thank you! ${name} is yours.` }),
     ).toBeVisible();
-    await expect(shopper.getByTestId("order-paid-total")).toHaveText("₦120,000.00");
+    await expect(shopper.getByTestId("order-paid-total")).toHaveText("₦120,000");
 
     // Sold out for everyone else; it shows in My Wardrobe.
     await shopper.goto(`/shop/${slug}`);
@@ -125,7 +125,7 @@ test.describe("Payments (US-A4, US-C4, US-D1)", () => {
       "aria-valuetext",
       /In production/,
     );
-    await expect(shopper.getByTestId("customer-balance-due")).toHaveText("₦100,000.00");
+    await expect(shopper.getByTestId("customer-balance-due")).toHaveText("₦100,000");
     await customer.close();
 
     // Admin sees it moved automatically, with the Paystack payment recorded.

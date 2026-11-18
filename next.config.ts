@@ -31,6 +31,10 @@ const nextConfig: NextConfig = {
   // The E2E dev server hides the floating dev-tools button: on small screens it covers
   // buttons near the bottom-left and takes their clicks. Production never shows it.
   devIndicators: process.env.DISABLE_DEV_INDICATORS === "1" ? false : undefined,
+  async redirects() {
+    // "My account" lands on the wardrobe; done here so no page renders just to redirect.
+    return [{ source: "/account", destination: "/account/wardrobe", permanent: false }];
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

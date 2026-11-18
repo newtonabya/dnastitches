@@ -3,8 +3,13 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { LogoLockup } from "@/components/brand/logo";
+import { BespokeSteps } from "@/components/custom/bespoke-steps";
 import { Stars } from "@/components/reviews/stars";
+import { ProductCard } from "@/components/shop/product-card";
+import { Button } from "@/components/ui/button";
+import { HERO_TAG } from "@/lib/portfolio";
 import { getPortfolio } from "@/server/loaders/portfolio";
+import { getShopProducts } from "@/server/loaders/products";
 import { getTestimonials } from "@/server/loaders/reviews";
 
 export default function HomePage() {
@@ -56,9 +61,90 @@ export default function HomePage() {
       </nav>
 
       <Suspense fallback={null}>
+        <NewArrivals />
+      </Suspense>
+
+      <section
+        aria-labelledby="bespoke-heading"
+        className="border-y border-primary/15 bg-card/40 py-14 sm:py-20"
+      >
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4">
+          <SectionHeading
+            id="bespoke-heading"
+            eyebrow="Made to measure"
+            title="How bespoke works"
+            blurb="From your first idea to the final fitting, every step is tracked in your account."
+          />
+          <BespokeSteps />
+          <div className="flex flex-wrap justify-center gap-3">
+            <Button asChild size="lg">
+              <Link href="/custom/book">Book a consultation</Link>
+            </Button>
+            <Button asChild size="lg" variant="outline">
+              <Link href="/custom/gallery">See the portfolio</Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      <Suspense fallback={null}>
         <Testimonials />
       </Suspense>
     </main>
+  );
+}
+
+function SectionHeading({
+  id,
+  eyebrow,
+  title,
+  blurb,
+}: {
+  id: string;
+  eyebrow: string;
+  title: string;
+  blurb?: string;
+}) {
+  return (
+    <header className="flex flex-col items-center gap-2 text-center">
+      <p className="text-xs tracking-[0.3em] text-primary uppercase">{eyebrow}</p>
+      <h2 id={id} className="text-3xl font-medium tracking-wide sm:text-4xl">
+        {title}
+      </h2>
+      {blurb ? <p className="max-w-xl text-sm text-muted-foreground">{blurb}</p> : null}
+    </header>
+  );
+}
+
+/** The newest pieces still for sale: a taste of the shop on the home page. */
+async function NewArrivals() {
+  const { items } = await getShopProducts({ status: "available", page: 1 });
+  const pieces = items.slice(0, 4);
+  if (pieces.length === 0) return null;
+  return (
+    <section
+      aria-labelledby="arrivals-heading"
+      className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 pb-16 sm:pb-20"
+    >
+      <SectionHeading
+        id="arrivals-heading"
+        eyebrow="Ready-to-wear"
+        title="New arrivals"
+        blurb="Every piece is 1-of-1. When it's gone, it's gone."
+      />
+      <ul className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
+        {pieces.map((p) => (
+          <li key={p.id}>
+            <ProductCard product={p} />
+          </li>
+        ))}
+      </ul>
+      <div className="flex justify-center">
+        <Button asChild variant="outline" size="lg">
+          <Link href="/shop">View the whole shop</Link>
+        </Button>
+      </div>
+    </section>
   );
 }
 
@@ -86,7 +172,7 @@ function PathLink({ href, title, blurb }: { href: string; title: string; blurb: 
  * Admin → Portfolio), else the newest portfolio piece, else the plain gold-on-black backdrop.
  */
 async function HeroPhoto() {
-  const hero = (await getPortfolio("hero"))[0] ?? (await getPortfolio())[0];
+  const hero = (await getPortfolio(HERO_TAG))[0] ?? (await getPortfolio())[0];
   return (
     <>
       <HeroBackdrop />
@@ -125,11 +211,9 @@ async function Testimonials() {
   return (
     <section
       aria-labelledby="testimonials-heading"
-      className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 pb-20"
+      className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-16 sm:py-20"
     >
-      <h2 id="testimonials-heading" className="text-center text-3xl font-medium tracking-wide">
-        What our clients say
-      </h2>
+      <SectionHeading id="testimonials-heading" eyebrow="Reviews" title="What our clients say" />
       <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {testimonials.map((t) => (
           <li key={t.id}>

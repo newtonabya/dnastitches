@@ -72,7 +72,7 @@ missing or malformed variable stops `next dev` / `next build` with a clear messa
   `BLOB_READ_WRITE_TOKEN`, `PAYSTACK_SECRET_KEY`, `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY`,
   `RESEND_API_KEY`, `EMAIL_FROM`, `NEXT_PUBLIC_SITE_URL`.
 - **Optional / defaulted:** `AUTH_GOOGLE_ID` + `AUTH_GOOGLE_SECRET` (set both or neither),
-  `CRON_SECRET`, `STUDIO_ADDRESS` and `STUDIO_HOURS` (shown at checkout for pickup),
+  `CRON_SECRET`, `STUDIO_ADDRESS` and `STUDIO_HOURS` (shown at checkout for pickup and in the footer),
   `CONSULTATION_MINUTES=60`, `APPOINTMENTS_AUTO_CONFIRM=false`, `TERMII_API_KEY` +
   `TERMII_SENDER_ID` (set both or neither) and `TERMII_CHANNEL=dnd`, `SENDBOX_API_KEY` (with
   `COURIER_ORIGIN_STREET`, `COURIER_ORIGIN_CITY`, `COURIER_ORIGIN_STATE` and

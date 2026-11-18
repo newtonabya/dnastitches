@@ -2,32 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
+import { BespokeSteps } from "@/components/custom/bespoke-steps";
 
 export const metadata: Metadata = {
   title: "Custom tailoring",
   description:
     "Made-to-measure pieces from the DNA Stitches atelier: share your idea, pick a fabric, and track every step.",
 };
-
-const STEPS = [
-  {
-    title: "Share your idea",
-    body: "Describe the piece, add up to 5 reference images and tell us the occasion.",
-  },
-  { title: "Pick a fabric", body: "Choose from our swatches, or let us advise you." },
-  {
-    title: "Measurements",
-    body: "Use saved measurements, enter new ones, or book a measurement appointment.",
-  },
-  {
-    title: "Quote & deposit",
-    body: "We send a quote. Production starts once the deposit is paid.",
-  },
-  {
-    title: "Fittings & handover",
-    body: "Follow progress in My Wardrobe, then collect or get it delivered.",
-  },
-] as const;
 
 export default function CustomLandingPage() {
   return (
@@ -57,15 +38,7 @@ export default function CustomLandingPage() {
         <h2 id="how-heading" className="text-2xl font-semibold">
           How it works
         </h2>
-        <ol className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          {STEPS.map((step, i) => (
-            <li key={step.title} className="flex flex-col gap-2 rounded-lg border p-4">
-              <span className="text-sm text-muted-foreground">Step {i + 1}</span>
-              <h3 className="font-medium">{step.title}</h3>
-              <p className="text-sm text-muted-foreground">{step.body}</p>
-            </li>
-          ))}
-        </ol>
+        <BespokeSteps />
       </section>
     </main>
   );

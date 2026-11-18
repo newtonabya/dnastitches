@@ -105,6 +105,15 @@ async function ProductDetail({ params }: Pick<PageProps<"/shop/[slug]">, "params
                 Terms
               </Link>
             </p>
+            <p className="text-sm text-muted-foreground">
+              Not quite your size?{" "}
+              <Link
+                href={`/custom/request?fromProduct=${encodeURIComponent(product.id)}`}
+                className="text-primary underline-offset-4 hover:underline"
+              >
+                Have one made to your measurements
+              </Link>
+            </p>
           </div>
         )}
 

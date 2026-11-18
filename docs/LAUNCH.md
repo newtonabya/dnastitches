@@ -33,7 +33,7 @@ never point at the production database.
 | `PAYSTACK_SECRET_KEY`, `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY` | Paystack **live** keys for Production, **test** keys for Preview (step 4) |
 | `BLOB_READ_WRITE_TOKEN`                                  | Vercel → Storage → Blob → your store → token                              |
 | `CRON_SECRET`                                            | `openssl rand -hex 32`; keep it for step 5                                |
-| `STUDIO_ADDRESS`, `STUDIO_HOURS`                         | Shown at checkout and in appointment emails                               |
+| `STUDIO_ADDRESS`, `STUDIO_HOURS`                         | Shown at checkout, in appointment emails and in the site footer           |
 | `STUDIO_TIMEZONE`                                        | `Africa/Lagos` (default)                                                  |
 | `CONSULTATION_MINUTES`, `APPOINTMENTS_AUTO_CONFIRM`      | Optional: 60 and `false` by default                                       |
 | `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`                   | Optional Google sign-in (set both or neither)                             |
